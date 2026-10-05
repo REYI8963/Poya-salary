@@ -1255,8 +1255,6 @@ async function saveEdit(){
 }
 
 // 幹部全員月曆
-let seniorCalYear = new Date().getFullYear();
-let seniorCalMonth = new Date().getMonth();
 
 function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCal(); }
 function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCal(); }
