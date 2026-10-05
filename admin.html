@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>POYA 寶雅 管理後台</title>
 <style>
-  :root { color-scheme: light; --pink:#e8317a; --pink-d:#c0185f; --pink-l:#fde8f1; --bg:#f8f9fa; --border:#e0e0e0; --text:#1a1a1a; --sub:#666; }
+  :root { color-scheme:light; --pink:#e8317a; --pink-d:#c0185f; --pink-l:#fde8f1; --pink-ll:#fff5f9; --orange:#f47920; --green:#3aaa35; --bg:#f8f9fa; --border:#e0e0e0; --text:#1a1a1a; --sub:#666; }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:-apple-system,'Helvetica Neue',sans-serif; background:var(--bg); color:var(--text); }
+  body { font-family:-apple-system,'Helvetica Neue',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
   /* LOGIN */
   #login-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:linear-gradient(135deg,#1a1a2e,#16213e); }
@@ -17,57 +17,95 @@
   .login-box input { width:100%; padding:13px 14px; border:2px solid var(--border); border-radius:10px; font-size:16px; margin-bottom:12px; }
   .login-box input:focus { outline:none; border-color:var(--pink); }
   .btn-admin-login { width:100%; padding:14px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; background:linear-gradient(135deg,var(--pink),var(--pink-d)); color:white; }
-  .login-error { color:var(--pink-d); font-size:13px; margin-top:10px; display:none; }
+  .login-error { color:var(--pink-d); font-size:13px; margin-top:10px; display:none; text-align:center; }
 
   /* APP */
   #app-screen { display:none; }
-  header { background:linear-gradient(135deg,#1a1a2e,#16213e); color:white; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+  header { background:linear-gradient(135deg,#1a1a2e,#16213e); color:white; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
   .header-title { font-size:16px; font-weight:800; }
   .header-sub { font-size:11px; opacity:0.6; display:block; }
   .btn-logout-admin { background:rgba(255,255,255,0.15); border:none; color:white; font-size:12px; padding:6px 12px; border-radius:8px; cursor:pointer; }
 
-  .tabs { display:flex; background:white; border-bottom:2px solid var(--border); overflow-x:auto; }
-  .tab { flex:0 0 auto; padding:12px 16px; font-size:13px; color:var(--sub); cursor:pointer; border-bottom:3px solid transparent; font-weight:600; white-space:nowrap; margin-bottom:-2px; }
+  .tabs { display:flex; background:white; border-bottom:2px solid var(--border); overflow-x:auto; position:sticky; top:53px; z-index:99; }
+  .tab { flex:0 0 auto; padding:12px 16px; font-size:12px; color:var(--sub); cursor:pointer; border-bottom:3px solid transparent; font-weight:600; white-space:nowrap; margin-bottom:-2px; }
   .tab.on { color:var(--pink); border-color:var(--pink); }
 
-  .page { display:none; padding:16px; max-width:900px; margin:0 auto; }
+  .page { display:none; padding:16px; max-width:960px; margin:0 auto; }
   .page.on { display:block; }
 
   .card { background:white; border-radius:14px; padding:18px; margin-bottom:14px; box-shadow:0 1px 6px rgba(0,0,0,0.07); border:1px solid var(--border); }
-  .card-title { font-size:12px; font-weight:700; color:var(--pink); text-transform:uppercase; letter-spacing:1px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--pink-l); }
+  .card-title { font-size:11px; font-weight:700; color:var(--pink); text-transform:uppercase; letter-spacing:1px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--pink-l); }
 
-  .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
-  .filter-row select, .filter-row input { padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; background:white; }
+  .filter-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .filter-row select, .filter-row input[type="text"], .filter-row input[type="password"] { padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; background:white; min-width:100px; }
   .filter-row select:focus, .filter-row input:focus { outline:none; border-color:var(--pink); }
   .btn-fetch { padding:9px 18px; background:var(--pink); color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn-green { background:var(--green); }
+  .btn-orange { background:var(--orange); }
+  .btn-red { background:#e74c3c; }
 
   /* 統計卡 */
-  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px; }
-  .stat-card { background:white; border-radius:12px; padding:16px; text-align:center; border:1px solid var(--border); }
-  .stat-num { font-size:28px; font-weight:900; color:var(--pink); }
-  .stat-lbl { font-size:11px; color:var(--sub); margin-top:4px; font-weight:600; }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:16px; }
+  .stat-card { background:white; border-radius:12px; padding:14px; text-align:center; border:1px solid var(--border); }
+  .stat-num { font-size:24px; font-weight:900; color:var(--pink); }
+  .stat-lbl { font-size:10px; color:var(--sub); margin-top:4px; font-weight:600; }
 
   /* 司機薪資卡 */
-  .driver-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
-  .driver-card { background:white; border-radius:12px; padding:16px; border:1px solid var(--border); border-left:4px solid var(--pink); }
-  .driver-name { font-size:15px; font-weight:700; color:var(--text); margin-bottom:10px; }
-  .driver-salary { font-size:24px; font-weight:900; color:var(--pink); margin-bottom:10px; }
-  .driver-row { display:flex; justify-content:space-between; font-size:13px; padding:3px 0; border-bottom:1px solid #f0f0f0; }
+  .driver-card { background:white; border-radius:12px; padding:16px; border:1px solid var(--border); border-left:4px solid var(--pink); margin-bottom:12px; }
+  .driver-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .driver-name { font-size:15px; font-weight:700; }
+  .driver-salary { font-size:20px; font-weight:900; color:var(--pink); }
+  .driver-row { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; border-bottom:1px solid #f0f0f0; }
   .driver-row:last-child { border:none; }
   .driver-row .lbl { color:var(--sub); font-size:12px; }
-  .driver-row .val { font-weight:600; color:var(--text); }
+  .driver-row .val { font-weight:600; }
 
-  /* 紀錄表格 */
-  .records-table { width:100%; border-collapse:collapse; font-size:13px; }
-  .records-table th { background:#f5f5f5; font-weight:600; padding:10px 8px; text-align:left; border-bottom:2px solid var(--border); font-size:12px; color:var(--sub); white-space:nowrap; }
-  .records-table td { padding:10px 8px; border-bottom:1px solid #f5f5f5; vertical-align:middle; }
-  .records-table tr:hover td { background:#fdf0f5; }
-  .name-badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; background:var(--pink-l); color:var(--pink); }
-  .table-wrap { overflow-x:auto; }
+  /* 帳號管理 */
+  .account-list { display:grid; gap:10px; }
+  .account-item { background:white; border-radius:12px; padding:14px 16px; border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .account-info { display:flex; align-items:center; gap:12px; }
+  .account-avatar { width:40px; height:40px; border-radius:50%; background:var(--pink-l); color:var(--pink); font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .account-name { font-size:15px; font-weight:700; }
+  .account-pw { font-size:12px; color:var(--sub); margin-top:2px; }
+  .account-actions { display:flex; gap:6px; }
+  .btn-sm { padding:6px 12px; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
+  .btn-sm-edit { background:var(--pink-l); color:var(--pink); }
+  .btn-sm-del { background:#fde8e8; color:#e74c3c; }
+
+  /* Modal */
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; padding:20px; }
+  .modal-bg.show { display:flex; }
+  .modal { background:white; border-radius:20px; padding:24px; width:100%; max-width:360px; }
+  .modal h3 { font-size:16px; font-weight:700; margin-bottom:16px; }
+  .modal .fg { margin-bottom:12px; }
+  .modal label { display:block; font-size:12px; color:var(--sub); font-weight:600; margin-bottom:5px; }
+  .modal input { width:100%; padding:11px 13px; border:1.5px solid var(--border); border-radius:9px; font-size:15px; }
+  .modal input:focus { outline:none; border-color:var(--pink); }
+  .modal-actions { display:flex; gap:8px; margin-top:16px; }
+  .modal-actions button { flex:1; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-modal-save { background:var(--pink); color:white; }
+  .btn-modal-cancel { background:var(--bg); color:var(--text); border:1.5px solid var(--border) !important; }
+
+  /* 出勤紀錄表格 */
+  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table.rec-table { width:100%; border-collapse:collapse; font-size:12px; min-width:700px; }
+  table.rec-table th { background:#f5f5f5; font-weight:600; padding:8px; text-align:left; border-bottom:2px solid var(--border); color:var(--sub); white-space:nowrap; position:sticky; top:0; }
+  table.rec-table td { padding:8px; border-bottom:1px solid #f5f5f5; vertical-align:top; }
+  table.rec-table tr:hover td { background:#fdf0f5; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+  .badge-pink { background:var(--pink-l); color:var(--pink); }
+  .route-cell { font-size:11px; line-height:1.5; }
+  .route-area { display:inline-block; background:#e3f2fd; color:#1565c0; border-radius:4px; padding:0 4px; font-size:10px; margin-left:2px; }
+  .route-ton { color:#888; font-size:10px; }
 
   .empty { text-align:center; color:#bbb; padding:40px 20px; font-size:14px; }
-  .loading { text-align:center; color:var(--sub); padding:30px; font-size:14px; }
-  .toast { display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a1a1a; color:white; padding:10px 20px; border-radius:20px; font-size:13px; z-index:999; }
+  .loading { text-align:center; color:var(--sub); padding:30px; }
+  .toast { display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a1a1a; color:white; padding:10px 20px; border-radius:20px; font-size:13px; z-index:999; white-space:nowrap; }
+
+  /* 月份導覽 */
+  .month-nav { display:flex; align-items:center; gap:8px; }
+  .nav-btn { background:none; border:1.5px solid var(--border); border-radius:8px; padding:6px 12px; font-size:14px; color:var(--pink); cursor:pointer; font-weight:700; }
+  .month-label { font-size:15px; font-weight:700; min-width:100px; text-align:center; }
 </style>
 </head>
 <body>
@@ -77,9 +115,9 @@
   <div class="login-box">
     <h1>🏢 POYA 寶雅</h1>
     <p>管理後台 — 僅限管理員使用</p>
-    <input type="password" id="admin-pw" placeholder="請輸入管理員密碼" maxlength="20">
+    <input type="password" id="admin-pw" placeholder="請輸入管理員密碼">
     <button class="btn-admin-login" onclick="adminLogin()">進入後台 →</button>
-    <div class="login-error" id="login-error">❌ 密碼錯誤</div>
+    <div class="login-error" id="login-error">❌ 密碼錯誤，請重新輸入</div>
   </div>
 </div>
 
@@ -87,38 +125,30 @@
 <div id="app-screen">
   <header>
     <div>
-      <div class="header-title">POYA 寶雅 管理後台</div>
+      <div class="header-title">🏢 POYA 寶雅 管理後台</div>
       <span class="header-sub">運務管理系統</span>
     </div>
     <button class="btn-logout-admin" onclick="adminLogout()">登出</button>
   </header>
 
   <div class="tabs">
-    <div class="tab on" onclick="showTab('summary',this)">💰 薪資總覽</div>
+    <div class="tab on" onclick="showTab('salary',this)">💰 薪資概況</div>
     <div class="tab" onclick="showTab('records',this)">📋 出勤紀錄</div>
+    <div class="tab" onclick="showTab('accounts',this)">👤 帳號管理</div>
   </div>
 
-  <!-- 薪資總覽 -->
-  <div class="page on" id="page-summary">
+  <!-- 薪資概況 -->
+  <div class="page on" id="page-salary">
     <div class="card">
-      <div class="card-title">篩選條件</div>
-      <div class="filter-row">
-        <select id="sum-year">
-          <option value="2026">115年(2026)</option>
-          <option value="2027">116年(2027)</option>
-        </select>
-        <select id="sum-month">
-          <option value="1">1月</option><option value="2">2月</option>
-          <option value="3">3月</option><option value="4">4月</option>
-          <option value="5">5月</option><option value="6">6月</option>
-          <option value="7">7月</option><option value="8">8月</option>
-          <option value="9">9月</option><option value="10">10月</option>
-          <option value="11">11月</option><option value="12">12月</option>
-        </select>
-        <button class="btn-fetch" onclick="loadSummary()">🔍 查詢</button>
+      <div class="card-title">選擇月份</div>
+      <div class="month-nav">
+        <button class="nav-btn" onclick="salaryMonthPrev()">‹</button>
+        <div class="month-label" id="salary-month-label"></div>
+        <button class="nav-btn" onclick="salaryMonthNext()">›</button>
+        <button class="btn-fetch" onclick="loadSalary()" style="margin-left:8px">🔍 查詢</button>
       </div>
     </div>
-    <div id="summary-content"><div class="empty">請選擇月份後按查詢</div></div>
+    <div id="salary-content"><div class="empty">請按查詢載入資料</div></div>
   </div>
 
   <!-- 出勤紀錄 -->
@@ -126,19 +156,10 @@
     <div class="card">
       <div class="card-title">篩選條件</div>
       <div class="filter-row">
-        <select id="rec-year">
-          <option value="2026">115年(2026)</option>
-          <option value="2027">116年(2027)</option>
-        </select>
-        <select id="rec-month">
-          <option value="1">1月</option><option value="2">2月</option>
-          <option value="3">3月</option><option value="4">4月</option>
-          <option value="5">5月</option><option value="6">6月</option>
-          <option value="7">7月</option><option value="8">8月</option>
-          <option value="9">9月</option><option value="10">10月</option>
-          <option value="11">11月</option><option value="12">12月</option>
-        </select>
-        <select id="rec-driver">
+        <button class="nav-btn" onclick="recMonthPrev()">‹</button>
+        <div class="month-label" id="rec-month-label"></div>
+        <button class="nav-btn" onclick="recMonthNext()">›</button>
+        <select id="rec-driver" style="margin-left:8px">
           <option value="">所有司機</option>
           <option>李憶擇</option><option>梁世昌</option>
           <option>劉哲維</option><option>陳勇德</option><option>王晴益</option>
@@ -146,7 +167,37 @@
         <button class="btn-fetch" onclick="loadRecords()">🔍 查詢</button>
       </div>
     </div>
-    <div id="records-content"><div class="empty">請選擇條件後按查詢</div></div>
+    <div id="records-content"><div class="empty">請按查詢載入資料</div></div>
+  </div>
+
+  <!-- 帳號管理 -->
+  <div class="page" id="page-accounts">
+    <div class="card">
+      <div class="card-title">運務士帳號列表</div>
+      <div id="account-list"></div>
+      <button class="btn-fetch btn-green" style="margin-top:14px;width:100%;padding:12px;border-radius:10px;font-size:14px" onclick="openAddModal()">＋ 新增運務士</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/修改帳號 Modal -->
+<div class="modal-bg" id="account-modal">
+  <div class="modal">
+    <h3 id="modal-title">✏️ 新增運務士</h3>
+    <input type="hidden" id="modal-mode">
+    <input type="hidden" id="modal-old-name">
+    <div class="fg">
+      <label>姓名</label>
+      <input type="text" id="modal-name" placeholder="請輸入姓名">
+    </div>
+    <div class="fg">
+      <label>密碼（4~6位數字）</label>
+      <input type="password" id="modal-pw" placeholder="請輸入密碼" maxlength="6">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveAccount()">💾 儲存</button>
+      <button class="btn-modal-cancel" onclick="closeAccountModal()">取消</button>
+    </div>
   </div>
 </div>
 
@@ -156,144 +207,273 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQ9pxJDIw9k9h4XD2UJpm3sRmUWPtAV_y_FlkxmRRUJGD6bjF46-0sP8hiOH7_U4DF/exec';
 const ADMIN_PASSWORD = 'poya2026';
 const RATES = {'台南':1000,'嘉義':1400,'雲林':1600,'高雄':1000,'廠提台南':1000,'廠提台中':2000,'轉倉':300};
+const ROUTE_COUNT = 6;
+
+// 帳號資料（存在 localStorage）
+function getAccounts() {
+  const def = {'李憶擇':'1116','梁世昌':'5888','劉哲維':'5566','陳勇德':'1122','王晴益':'0000'};
+  return JSON.parse(localStorage.getItem('poya_accounts') || JSON.stringify(def));
+}
+function saveAccounts(a) { localStorage.setItem('poya_accounts', JSON.stringify(a)); }
 
 let adminPw = '';
+let salaryYear, salaryMonth, recYear, recMonth;
 
 window.onload = () => {
   const now = new Date();
-  document.getElementById('sum-month').value = now.getMonth()+1;
-  document.getElementById('rec-month').value = now.getMonth()+1;
+  salaryYear = now.getFullYear(); salaryMonth = now.getMonth();
+  recYear = now.getFullYear(); recMonth = now.getMonth();
+  updateMonthLabels();
   document.getElementById('admin-pw').addEventListener('keydown', e => { if(e.key==='Enter') adminLogin(); });
 };
 
+function updateMonthLabels() {
+  const rocS = (salaryYear-1911)+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
+  const rocR = (recYear-1911)+'年'+String(recMonth+1).padStart(2,'0')+'月';
+  document.getElementById('salary-month-label').textContent = rocS;
+  document.getElementById('rec-month-label').textContent = rocR;
+}
+function salaryMonthPrev(){ salaryMonth--; if(salaryMonth<0){salaryMonth=11;salaryYear--;} updateMonthLabels(); }
+function salaryMonthNext(){ salaryMonth++; if(salaryMonth>11){salaryMonth=0;salaryYear++;} updateMonthLabels(); }
+function recMonthPrev(){ recMonth--; if(recMonth<0){recMonth=11;recYear--;} updateMonthLabels(); }
+function recMonthNext(){ recMonth++; if(recMonth>11){recMonth=0;recYear++;} updateMonthLabels(); }
+
 function adminLogin() {
   const pw = document.getElementById('admin-pw').value;
-  if(pw !== ADMIN_PASSWORD) {
-    document.getElementById('login-error').style.display = 'block';
-    return;
-  }
+  if(pw !== ADMIN_PASSWORD) { document.getElementById('login-error').style.display='block'; return; }
   adminPw = pw;
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  renderAccounts();
 }
 function adminLogout() {
-  adminPw = '';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app-screen').style.display = 'none';
-  document.getElementById('admin-pw').value = '';
+  adminPw='';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('admin-pw').value='';
 }
-
-function showTab(t, el) {
+function showTab(t,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('on'));
-  document.getElementById('page-'+t).classList.add('on');
-  el.classList.add('on');
+  document.getElementById('page-'+t).classList.add('on'); el.classList.add('on');
 }
-
 function toast(msg) {
   const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block';
   setTimeout(()=>el.style.display='none',3000);
 }
-
 async function apiCall(data) {
   const res = await fetch(API_URL, { method:'POST', body:JSON.stringify(data) });
   return await res.json();
 }
+function fmt$(n) { return '$'+Number(n).toLocaleString(); }
 
-function fmt$(n) { return '$'+n.toLocaleString('zh-TW'); }
+// 日期格式化：從 YYYY-MM-DD 轉成 MM/DD
+function fmtDate(dateStr) {
+  if(!dateStr) return '';
+  // 處理各種日期格式
+  const s = String(dateStr);
+  // YYYY-MM-DD
+  const m1 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m1) return parseInt(m1[2])+'/'+parseInt(m1[3]);
+  // Date object toString
+  const d = new Date(s);
+  if(!isNaN(d.getTime())) return (d.getMonth()+1)+'/'+d.getDate();
+  return s;
+}
 
-async function loadSummary() {
-  const year = document.getElementById('sum-year').value;
-  const month = document.getElementById('sum-month').value;
-  const content = document.getElementById('summary-content');
+// ── 薪資概況 ──
+async function loadSalary() {
+  const content = document.getElementById('salary-content');
   content.innerHTML = '<div class="loading">🔄 載入中...</div>';
-
   try {
-    const result = await apiCall({ action:'getSummary', password:adminPw, year:parseInt(year), month:parseInt(month) });
-    if(result.error) { content.innerHTML = `<div class="empty">❌ ${result.error}</div>`; return; }
+    const result = await apiCall({ action:'getSummary', password:adminPw, year:salaryYear, month:salaryMonth+1 });
+    if(result.error){ content.innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
 
     const summary = result.summary;
-    if(!summary.length) { content.innerHTML = '<div class="empty">本月尚無資料</div>'; return; }
+    const rocYear = salaryYear-1911;
+    const mLabel = rocYear+'年'+(salaryMonth+1)+'月';
+
+    if(!summary.length){ content.innerHTML='<div class="empty">本月尚無資料</div>'; return; }
 
     const totalSalary = summary.reduce((s,d)=>s+d.salary,0);
     const totalTrips = summary.reduce((s,d)=>s+d.trips,0);
 
-    const rocYear = parseInt(year)-1911;
-    content.innerHTML = `
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-num">${fmt$(totalSalary)}</div><div class="stat-lbl">本月總薪資</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:#f47920">${totalTrips}</div><div class="stat-lbl">本月總趟數</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:#3aaa35">${summary.length}</div><div class="stat-lbl">出勤人數</div></div>
-      </div>
-      <div class="card"><div class="card-title">${rocYear}年${month}月 各司機薪資明細</div>
-        <div class="driver-grid">
-          ${summary.map(d=>`
-            <div class="driver-card">
-              <div class="driver-name">👤 ${d.name}</div>
-              <div class="driver-salary">${fmt$(d.salary)}</div>
-              <div class="driver-row"><span class="lbl">總趟數</span><span class="val">${d.trips} 趟</span></div>
-              ${Object.entries(d.areas).filter(([k,v])=>v>0).map(([k,v])=>`
-                <div class="driver-row"><span class="lbl">${k}路線</span><span class="val">${v}趟 × ${fmt$(RATES[k])}</span></div>`).join('')}
-              ${Object.entries(d.factory).filter(([k,v])=>v>0).map(([k,v])=>`
-                <div class="driver-row"><span class="lbl">廠提${k}</span><span class="val">${v}趟 × ${fmt$(RATES['廠提'+k])}</span></div>`).join('')}
-              ${d.transfer>0?`<div class="driver-row"><span class="lbl">轉倉</span><span class="val">${d.transfer}次 × ${fmt$(RATES['轉倉'])}</span></div>`:''}
-            </div>`).join('')}
+    // 總覽統計
+    let html = `<div class="stats-grid">
+      <div class="stat-card"><div class="stat-num">${fmt$(totalSalary)}</div><div class="stat-lbl">${mLabel} 總薪資</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#f47920">${totalTrips}</div><div class="stat-lbl">總趟數</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#3aaa35">${summary.length}</div><div class="stat-lbl">出勤人數</div></div>
+    </div>`;
+
+    // 每位司機獨立卡片
+    summary.forEach(d => {
+      const areaRows = Object.entries(d.areas).filter(([k,v])=>v>0).map(([k,v])=>`
+        <div class="driver-row"><span class="lbl">${k}路線</span><span class="val">${v}趟 × ${fmt$(RATES[k])} = <b style="color:var(--pink)">${fmt$(v*RATES[k])}</b></span></div>`).join('');
+      const facRows = Object.entries(d.factory).filter(([k,v])=>v>0).map(([k,v])=>`
+        <div class="driver-row"><span class="lbl">廠提${k}</span><span class="val">${v}趟 × ${fmt$(RATES['廠提'+k])} = <b style="color:var(--pink)">${fmt$(v*RATES['廠提'+k])}</b></span></div>`).join('');
+      const transferRow = d.transfer>0 ? `<div class="driver-row"><span class="lbl">轉倉</span><span class="val">${d.transfer}次 × ${fmt$(RATES['轉倉'])} = <b style="color:var(--pink)">${fmt$(d.transfer*RATES['轉倉'])}</b></span></div>` : '';
+
+      html += `<div class="driver-card">
+        <div class="driver-header">
+          <div class="driver-name">👤 ${d.name}</div>
+          <div class="driver-salary">${fmt$(d.salary)}</div>
         </div>
+        <div class="driver-row"><span class="lbl">本月總趟數</span><span class="val">${d.trips} 趟</span></div>
+        ${areaRows}${facRows}${transferRow}
       </div>`;
+    });
+
+    content.innerHTML = html;
   } catch(e) {
     content.innerHTML = '<div class="empty">❌ 連線失敗，請重試</div>';
   }
 }
 
+// ── 出勤紀錄 ──
 async function loadRecords() {
-  const year = document.getElementById('rec-year').value;
-  const month = document.getElementById('rec-month').value;
   const driver = document.getElementById('rec-driver').value;
   const content = document.getElementById('records-content');
   content.innerHTML = '<div class="loading">🔄 載入中...</div>';
-
   try {
     const result = await apiCall({ action:'getAllRecords', password:adminPw });
-    if(result.error) { content.innerHTML = `<div class="empty">❌ ${result.error}</div>`; return; }
+    if(result.error){ content.innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
+
+    // 篩選：用字串比對月份，避免時區問題
+    const yStr = String(recYear);
+    const mStr = String(recMonth+1).padStart(2,'0');
+    const prefix = yStr+'-'+mStr;
 
     let records = result.records.filter(r => {
-      const d = new Date(r.date);
-      const matchYear = d.getFullYear() == year;
-      const matchMonth = (d.getMonth()+1) == month;
+      const dateStr = String(r.date || '');
+      // 支援 YYYY-MM-DD 格式
+      const matchDate = dateStr.startsWith(prefix);
       const matchDriver = !driver || r.name === driver;
-      return matchYear && matchMonth && matchDriver;
-    }).sort((a,b)=>b.date.localeCompare(a.date));
+      return matchDate && matchDriver;
+    }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 
-    if(!records.length) { content.innerHTML = '<div class="empty">此條件無資料</div>'; return; }
+    if(!records.length){ content.innerHTML='<div class="empty">此條件無資料</div>'; return; }
 
-    const rocYear = parseInt(year)-1911;
-    content.innerHTML = `
-      <div class="card">
-        <div class="card-title">${rocYear}年${month}月 出勤紀錄（共${records.length}筆）</div>
-        <div class="table-wrap">
-          <table class="records-table">
-            <thead><tr>
-              <th>日期</th><th>司機</th>
-              <th>趟次1</th><th>趟次2</th><th>趟次3</th><th>趟次4</th><th>趟次5</th><th>趟次6</th>
-              <th>廠提</th><th>轉倉</th><th>車牌</th>
-            </tr></thead>
-            <tbody>
-              ${records.map(r=>`
-                <tr>
-                  <td>${r.date}</td>
-                  <td><span class="name-badge">${r.name}</span></td>
-                  ${[1,2,3,4,5,6].map(n=>`<td>${r['r'+n]?`${r['r'+n]}${r['a'+n]?'('+r['a'+n]+')':''}${r['c'+n]?r['c'+n]+'間':''}${r['t'+n]?'['+r['t'+n]+']':''}`:''}</td>`).join('')}
-                  <td>${r.factory?r.factory+(r.factoryCount?'('+r.factoryCount+'間)':'')+(r.factoryTon?'['+r.factoryTon+']':''):''}</td>
-                  <td>${r.transfer||''}</td>
-                  <td>${r.plate||''}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
+    const rocYear = recYear-1911;
+    const mLabel = rocYear+'年'+(recMonth+1)+'月';
+
+    let rows = records.map(r => {
+      const routes = [];
+      for(let n=1;n<=ROUTE_COUNT;n++){
+        if(r['r'+n]){
+          routes.push(`<div class="route-cell">${r['r'+n]}${r['a'+n]?`<span class="route-area">${r['a'+n]}</span>`:''}${r['c'+n]?' '+r['c'+n]+'間':''}${r['t'+n]?`<span class="route-ton"> [${r['t'+n]}]</span>`:''}</div>`);
+        }
+      }
+      const factory = r.factory && r.factory!=='無' ? `${r.factory}${r.factoryCount?'('+r.factoryCount+'間)':''}${r.factoryTon?'['+r.factoryTon+']':''}` : '';
+      return `<tr>
+        <td style="white-space:nowrap;font-weight:600">${fmtDate(r.date)}</td>
+        <td><span class="badge badge-pink">${r.name}</span></td>
+        <td>${routes.join('')}</td>
+        <td>${factory}</td>
+        <td style="text-align:center">${r.transfer||''}</td>
+        <td>${r.plate||''}</td>
+      </tr>`;
+    }).join('');
+
+    content.innerHTML = `<div class="card">
+      <div class="card-title">${mLabel} 出勤紀錄（共${records.length}筆）${driver?' — '+driver:''}</div>
+      <div class="table-wrap">
+        <table class="rec-table">
+          <thead><tr>
+            <th>日期</th><th>司機</th><th>配送趟次</th><th>廠提</th><th>轉倉</th><th>車牌</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
   } catch(e) {
     content.innerHTML = '<div class="empty">❌ 連線失敗，請重試</div>';
   }
+}
+
+// ── 帳號管理 ──
+function renderAccounts() {
+  const accounts = getAccounts();
+  const list = document.getElementById('account-list');
+  if(!Object.keys(accounts).length){
+    list.innerHTML='<div class="empty">尚無帳號</div>'; return;
+  }
+  list.innerHTML = `<div class="account-list">${Object.entries(accounts).map(([name,pw])=>`
+    <div class="account-item">
+      <div class="account-info">
+        <div class="account-avatar">${name[0]}</div>
+        <div>
+          <div class="account-name">${name}</div>
+          <div class="account-pw">密碼：${'●'.repeat(pw.length)}</div>
+        </div>
+      </div>
+      <div class="account-actions">
+        <button class="btn-sm btn-sm-edit" onclick="openEditModal('${name}','${pw}')">✏️ 修改</button>
+        <button class="btn-sm btn-sm-del" onclick="deleteAccount('${name}')">🗑️ 刪除</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function openAddModal() {
+  document.getElementById('modal-title').textContent = '➕ 新增運務士';
+  document.getElementById('modal-mode').value = 'add';
+  document.getElementById('modal-old-name').value = '';
+  document.getElementById('modal-name').value = '';
+  document.getElementById('modal-pw').value = '';
+  document.getElementById('modal-name').disabled = false;
+  document.getElementById('account-modal').classList.add('show');
+}
+function openEditModal(name, pw) {
+  document.getElementById('modal-title').textContent = '✏️ 修改帳號密碼';
+  document.getElementById('modal-mode').value = 'edit';
+  document.getElementById('modal-old-name').value = name;
+  document.getElementById('modal-name').value = name;
+  document.getElementById('modal-pw').value = pw;
+  document.getElementById('modal-name').disabled = false;
+  document.getElementById('account-modal').classList.add('show');
+}
+function closeAccountModal() { document.getElementById('account-modal').classList.remove('show'); }
+
+function saveAccount() {
+  const mode = document.getElementById('modal-mode').value;
+  const oldName = document.getElementById('modal-old-name').value;
+  const name = document.getElementById('modal-name').value.trim();
+  const pw = document.getElementById('modal-pw').value.trim();
+
+  if(!name){ toast('⚠️ 請輸入姓名'); return; }
+  if(!pw){ toast('⚠️ 請輸入密碼'); return; }
+  if(pw.length < 4){ toast('⚠️ 密碼至少4位'); return; }
+
+  const accounts = getAccounts();
+
+  if(mode === 'add') {
+    if(accounts[name]){ toast('⚠️ 此姓名已存在'); return; }
+    accounts[name] = pw;
+    toast('✅ 已新增 '+name);
+  } else {
+    if(oldName !== name) {
+      // 改名：刪舊的，建新的
+      delete accounts[oldName];
+    }
+    accounts[name] = pw;
+    toast('✅ 已更新 '+name);
+  }
+
+  saveAccounts(accounts);
+  closeAccountModal();
+  renderAccounts();
+
+  // 提示需要同步到 index.html
+  setTimeout(()=>toast('⚠️ 記得更新 index.html 的帳號設定！'),3500);
+}
+
+function deleteAccount(name) {
+  if(!confirm(`確定要刪除「${name}」的帳號嗎？`)) return;
+  const accounts = getAccounts();
+  delete accounts[name];
+  saveAccounts(accounts);
+  renderAccounts();
+  toast('🗑️ 已刪除 '+name);
+  setTimeout(()=>toast('⚠️ 記得更新 index.html 的帳號設定！'),3500);
 }
 </script>
 </body>
