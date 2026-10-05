@@ -894,6 +894,10 @@ function loadSalary(){
   salary+=totalTransfer*SALARY_RATES['轉倉'];
 
   const fmt$=n=>n.toLocaleString('zh-TW');
+  // 扣款和健保暫時設為 0，待雲端同步後更新
+  const deductTotal=0;
+  const healthInsurance=0;
+  const deductions=[];
 
   const areaRows=Object.entries(areaCounts).map(([k,v])=>{
     if(v===0)return'';
