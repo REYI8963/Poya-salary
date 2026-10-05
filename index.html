@@ -364,27 +364,6 @@
 
 
 <script>
-// 從 Sheets 動態載入司機名單到登入選單
-async function loadDriverList() {
-  const sel = document.getElementById('login-name');
-  if (!sel) return;
-  try {
-    const result = await apiCall({action:'getAccounts', password:'__public__'});
-    if (result.success && result.accounts && result.accounts.length > 0) {
-      sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
-        + result.accounts.map(a => `<option>${a.name}</option>`).join('');
-    } else {
-      // fallback：用預設名單
-      sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
-        + ['李憶擇','梁世昌','劉哲維','陳勇德','王晴益'].map(n=>`<option>${n}</option>`).join('');
-    }
-  } catch(e) {
-    // 離線 fallback
-    sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
-      + ['李憶擇','梁世昌','劉哲維','陳勇德','王晴益'].map(n=>`<option>${n}</option>`).join('');
-  }
-}
-
 // 帳號資料從 localStorage 讀取（由管理員後台管理）
 function getUsers() {
   const def = {'李憶擇':{pw:'1116',role:'driver'},'梁世昌':{pw:'5888',role:'driver'},'劉哲維':{pw:'5566',role:'driver'},'陳勇德':{pw:'1122',role:'driver'},'王晴益':{pw:'0000',role:'driver'}};
@@ -407,6 +386,26 @@ function isSenior(){
 }
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbz6s-FJOYLDF9Ex5YO2iUEHY_O0IwwBxclKMUsSGwjcUDIUq61iLOS1M4rLuZh2dmCN/exec';
+
+// 從 Sheets 動態載入司機名單到登入選單
+async function loadDriverList() {
+  const sel = document.getElementById('login-name');
+  if (!sel) return;
+  const fallbackList = ['李憶擇','梁世昌','劉哲維','陳勇德','王晴益'];
+  const fallbackHtml = '<option value="">── 請選擇姓名 ──</option>'
+    + fallbackList.map(n=>`<option>${n}</option>`).join('');
+  try {
+    const result = await apiCall({action:'getAccounts', password:'__public__'});
+    if (result.success && result.accounts && result.accounts.length > 0) {
+      sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
+        + result.accounts.map(a=>`<option>${a.name}</option>`).join('');
+    } else {
+      sel.innerHTML = fallbackHtml;
+    }
+  } catch(e) {
+    sel.innerHTML = fallbackHtml;
+  }
+}
 
 async function apiCall(data) {
   try {
