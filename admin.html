@@ -357,6 +357,29 @@ function cleanDate(dateStr){
   return m?m[1]:s;
 }
 
+// 修正英文日期格式 "Fri Sep 25" → "2026-09-25"
+function fixDateFormat(dateStr, timeStr) {
+  const s = String(dateStr || '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const MONTHS = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+    Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+  const eng = s.match(/^[A-Za-z]+ ([A-Za-z]+) (\d+)$/);
+  if (eng) {
+    const submitDate = timeStr ? new Date(timeStr) : new Date();
+    const y = submitDate.getFullYear();
+    const mo = MONTHS[eng[1]] || '01';
+    const d = String(parseInt(eng[2])).padStart(2, '0');
+    return y + '-' + mo + '-' + d;
+  }
+  if (s.length >= 10) return s.substring(0, 10);
+  return s;
+}
+
+// 修正一批資料的日期格式
+function fixRecordsDates(records) {
+  return (records||[]).map(r => ({...r, date: fixDateFormat(r.date, r.time)}));
+}
+
 async function apiCall(data){
   const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(data)});
   return await res.json();
@@ -442,8 +465,13 @@ async function loadSalary(){
   document.getElementById('salary-stats').innerHTML='';
   try{
     const result=await apiCall({action:'getSummary',password:adminPw,year:salaryYear,month:salaryMonth+1});
-    console.log('getSummary result:', result);
     if(result.error){ document.getElementById('salary-content').innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
+    // 修正 summary 裡每筆 record 的日期格式
+    if(result.summary) {
+      result.summary.forEach(d => {
+        if(d.records) d.records = fixRecordsDates(d.records);
+      });
+    }
     summaryCache=result.summary;
     currentSettings=result.settings||{};
 
@@ -522,6 +550,8 @@ async function renderCalendar(){
   try{
     const result=await apiCall({action:'getAllRecords',password:adminPw});
     if(result.error){ grid.innerHTML='<div class="empty" style="grid-column:span 7">❌ '+result.error+'</div>'; return; }
+    // 修正日期格式
+    if(result.records) result.records = fixRecordsDates(result.records);
 
     const prefix=String(calYear)+'-'+String(calMonth+1).padStart(2,'0');
     const records=result.records.filter(r=>{
