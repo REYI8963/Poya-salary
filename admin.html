@@ -14,29 +14,29 @@
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:-apple-system,'Helvetica Neue',sans-serif; background:var(--bg) !important; color:var(--text); min-height:100vh; color-scheme:light only; }
 
-  /* LOGIN */
   #login-screen { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 24px; background:linear-gradient(160deg,var(--pink-d) 0%,var(--pink) 55%,#f06090 100%); }
   .login-poya { font-size:38px; font-weight:900; letter-spacing:3px; color:white; text-align:center; }
   .login-tagline { color:rgba(255,255,255,0.75); font-size:12px; letter-spacing:4px; margin-top:6px; text-align:center; margin-bottom:36px; }
   .login-card { background:white; border-radius:24px; padding:30px 24px; width:100%; max-width:340px; box-shadow:0 12px 48px rgba(200,24,95,0.25); }
-  .login-card h2 { font-size:16px; font-weight:700; color:var(--text); margin-bottom:4px; }
+  .login-card h2 { font-size:16px; font-weight:700; margin-bottom:4px; }
   .login-card p { font-size:12px; color:var(--sub); margin-bottom:20px; }
-  .login-card input { width:100%; padding:13px 14px; border:2px solid var(--border); border-radius:12px; font-size:16px; color:var(--text); background:var(--pink-ll); -webkit-appearance:none; margin-bottom:12px; }
+  .login-card input { width:100%; padding:13px 14px; border:2px solid var(--border); border-radius:12px; font-size:16px; background:var(--pink-ll); -webkit-appearance:none; margin-bottom:12px; }
   .login-card input:focus { outline:none; border-color:var(--pink); background:white; }
   .btn-login-admin { width:100%; padding:15px; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer; color:white; background:linear-gradient(135deg,var(--pink),var(--pink-d)); }
   .login-error { color:var(--pink-d); font-size:13px; text-align:center; margin-top:10px; display:none; font-weight:600; }
 
-  /* APP */
   #app-screen { display:none; }
   .color-stripe { height:4px; display:flex; }
   .color-stripe div { flex:1; }
   header { background:var(--pink); color:white; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(200,24,95,0.3); }
   .header-brand { font-size:17px; font-weight:900; }
+  .header-right { display:flex; align-items:center; gap:8px; }
+  .role-badge { background:rgba(255,255,255,0.25); color:white; font-size:11px; font-weight:700; padding:3px 10px; border-radius:12px; }
   .header-sub { font-size:10px; opacity:0.75; display:block; }
   .btn-logout { background:rgba(255,255,255,0.2); border:none; color:rgba(255,255,255,0.85); font-size:11px; padding:5px 10px; border-radius:8px; cursor:pointer; }
 
   .tabs { display:flex; background:white; border-bottom:2px solid var(--border); position:sticky; top:53px; z-index:99; overflow-x:auto; }
-  .tab { flex:0 0 auto; padding:11px 12px; text-align:center; font-size:11px; color:var(--sub); cursor:pointer; border-bottom:3px solid transparent; font-weight:600; margin-bottom:-2px; white-space:nowrap; }
+  .tab { flex:0 0 auto; padding:11px 12px; font-size:11px; color:var(--sub); cursor:pointer; border-bottom:3px solid transparent; font-weight:600; margin-bottom:-2px; white-space:nowrap; }
   .tab.on { color:var(--pink); border-color:var(--pink); }
 
   .page { display:none; padding:14px; max-width:700px; margin:0 auto; }
@@ -49,11 +49,11 @@
   .fg { margin-bottom:12px; }
   .fg:last-child { margin-bottom:0; }
   label { display:block; font-size:12px; color:var(--sub); margin-bottom:5px; font-weight:600; }
-  input[type="text"], input[type="password"], input[type="number"], select {
+  input[type="text"],input[type="password"],input[type="number"],select,input[type="month"] {
     width:100%; padding:11px 13px; border:1.5px solid var(--border); border-radius:10px;
     font-size:15px; color:var(--text); background:var(--pink-ll); -webkit-appearance:none;
   }
-  input:focus, select:focus { outline:none; border-color:var(--pink); background:white; }
+  input:focus,select:focus { outline:none; border-color:var(--pink); background:white; }
 
   .btn { width:100%; padding:14px; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; }
   .btn:last-child { margin-bottom:0; }
@@ -61,27 +61,25 @@
   .btn-green { background:linear-gradient(135deg,var(--green),#2d8a2a); color:white; }
   .btn-orange { background:linear-gradient(135deg,var(--orange),#d45f00); color:white; }
   .btn-outline { background:white; color:var(--pink); border:2px solid var(--pink); }
-  .btn-sm { padding:7px 14px; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+  .btn-sm { padding:6px 12px; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
   .btn-sm-edit { background:var(--pink-l); color:var(--pink); }
   .btn-sm-del { background:#fde8e8; color:#e74c3c; }
 
-  /* 月份導覽 */
   .month-nav { display:flex; align-items:center; gap:8px; }
   .nav-btn { background:none; border:1.5px solid var(--border); border-radius:8px; padding:7px 14px; font-size:14px; color:var(--pink); cursor:pointer; font-weight:700; }
-  .month-label { font-size:15px; font-weight:700; flex:1; text-align:center; color:var(--text); }
+  .month-label { font-size:15px; font-weight:700; flex:1; text-align:center; }
 
-  /* 統計卡 */
-  .stats-row { display:flex; gap:8px; margin-bottom:12px; }
-  .stat-box { flex:1; background:white; border-radius:14px; padding:14px 10px; text-align:center; border:1px solid var(--border); }
-  .stat-num { font-size:22px; font-weight:900; }
+  .stats-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .stat-box { flex:1; min-width:80px; background:white; border-radius:14px; padding:12px 8px; text-align:center; border:1px solid var(--border); }
+  .stat-num { font-size:20px; font-weight:900; }
   .stat-lbl { font-size:10px; color:var(--sub); margin-top:3px; font-weight:600; }
 
-  /* 司機薪資卡 */
-  .driver-cards { display:grid; gap:10px; }
-  .driver-card { background:white; border-radius:14px; padding:16px; border:1px solid var(--border); border-left:4px solid var(--pink); cursor:pointer; transition:box-shadow 0.15s; }
-  .driver-card:active { box-shadow:0 4px 16px rgba(200,24,95,0.2); }
-  .driver-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .driver-card { background:white; border-radius:14px; padding:16px; border:1px solid var(--border); border-left:4px solid var(--pink); cursor:pointer; margin-bottom:10px; }
+  .driver-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
   .driver-name { font-size:15px; font-weight:700; }
+  .driver-role-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; margin-left:6px; }
+  .role-driver { background:#e8f5e9; color:#2e7d32; }
+  .role-senior { background:#e3f2fd; color:#1565c0; }
   .driver-total { text-align:right; }
   .driver-salary { font-size:18px; font-weight:900; color:var(--pink); }
   .driver-base { font-size:11px; color:var(--sub); }
@@ -89,17 +87,15 @@
   .driver-row:last-child { border:none; }
   .driver-row .lbl { color:var(--sub); }
   .driver-row .val { font-weight:600; }
+  .deduction-row { display:flex; justify-content:space-between; font-size:12px; padding:3px 0; border-bottom:1px solid #fde8e8; color:#e74c3c; }
 
-  /* 帳號管理 */
   .account-item { background:white; border-radius:12px; padding:14px 16px; border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
   .account-info { display:flex; align-items:center; gap:12px; }
   .account-avatar { width:40px; height:40px; border-radius:50%; background:var(--pink-l); color:var(--pink); font-size:15px; font-weight:700; display:flex; align-items:center; justify-content:center; }
   .account-name { font-size:15px; font-weight:700; }
-  .account-pw { font-size:12px; color:var(--sub); margin-top:2px; }
+  .account-detail { font-size:12px; color:var(--sub); margin-top:2px; }
   .account-actions { display:flex; gap:6px; }
 
-  /* 月曆 */
-  .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
   .cal-dow { text-align:center; font-size:10px; font-weight:700; color:var(--sub); padding:4px 0; }
   .cal-dow:first-child,.cal-dow:last-child { color:#e74c3c; }
@@ -108,28 +104,35 @@
   .cal-day.sunday { background:#fff0f0; }
   .cal-day.today { border-color:var(--pink); border-width:2px; }
   .cal-day.has-record { background:var(--pink-ll); border-color:var(--pink); }
-  .cal-day-num { font-size:11px; font-weight:600; color:var(--text); }
+  .cal-day-num { font-size:11px; font-weight:600; }
   .cal-day.sunday .cal-day-num { color:#e74c3c; }
   .cal-trip { font-size:9px; color:var(--pink); font-weight:700; margin-top:2px; }
 
-  /* 薪資設定 */
   .rate-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .rate-item { background:var(--pink-ll); border-radius:10px; padding:12px; border:1px solid var(--border); }
   .rate-label { font-size:11px; color:var(--sub); font-weight:600; margin-bottom:6px; }
   .rate-input { width:100%; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; font-size:15px; font-weight:700; color:var(--pink); background:white; text-align:center; }
 
-  /* Modal */
+  /* 扣款 */
+  .deduction-item { background:white; border-radius:10px; padding:12px 14px; border:1px solid #fde8e8; border-left:3px solid #e74c3c; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+  .deduction-info .name { font-size:13px; font-weight:700; }
+  .deduction-info .reason { font-size:12px; color:var(--sub); margin-top:2px; }
+  .deduction-amount { font-size:16px; font-weight:900; color:#e74c3c; }
+
+  .filter-chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .filter-chip { padding:6px 14px; border:1.5px solid var(--border); border-radius:20px; font-size:12px; font-weight:600; background:white; color:var(--sub); cursor:pointer; }
+  .filter-chip.on { border-color:var(--pink); background:var(--pink-ll); color:var(--pink); }
+
   .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto; }
   .modal-bg.show { display:flex; }
   .modal { background:white; border-radius:20px; padding:24px; width:100%; max-width:420px; margin:auto; }
-  .modal h3 { font-size:16px; font-weight:700; color:var(--text); margin-bottom:16px; }
+  .modal h3 { font-size:16px; font-weight:700; margin-bottom:16px; }
   .modal .fg { margin-bottom:10px; }
   .modal-actions { display:flex; gap:8px; margin-top:16px; }
   .modal-actions button { flex:1; padding:14px; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; }
   .btn-modal-save { background:linear-gradient(135deg,var(--pink),var(--pink-d)); color:white; }
   .btn-modal-cancel { background:var(--bg); color:var(--text); border:1.5px solid var(--border) !important; }
 
-  /* 詳細紀錄 */
   .detail-record { background:var(--pink-ll); border-radius:10px; padding:12px; margin-bottom:8px; border:1px solid var(--border); }
   .detail-name { font-size:13px; font-weight:700; color:var(--pink); margin-bottom:6px; }
   .detail-row { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; }
@@ -138,12 +141,7 @@
 
   .empty { text-align:center; color:#d0a0b4; padding:40px 20px; font-size:14px; }
   .loading { text-align:center; color:var(--sub); padding:30px; font-size:14px; }
-  .toast { display:none; position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:var(--text); color:white; padding:11px 22px; border-radius:22px; font-size:13px; z-index:999; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
-
-  /* 篩選 */
-  .filter-chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-  .filter-chip { padding:6px 14px; border:1.5px solid var(--border); border-radius:20px; font-size:12px; font-weight:600; background:white; color:var(--sub); cursor:pointer; }
-  .filter-chip.on { border-color:var(--pink); background:var(--pink-ll); color:var(--pink); }
+  .toast { display:none; position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:var(--text); color:white; padding:11px 22px; border-radius:22px; font-size:13px; z-index:999; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -169,24 +167,23 @@
   </div>
   <header>
     <div><div class="header-brand">POYA 寶雅 管理後台</div><span class="header-sub">運務管理系統</span></div>
-    <button class="btn-logout" onclick="adminLogout()">登出</button>
+    <div class="header-right">
+      <span class="role-badge" id="role-badge"></span>
+      <button class="btn-logout" onclick="adminLogout()">登出</button>
+    </div>
   </header>
-  <div class="tabs">
-    <div class="tab on" onclick="showTab('accounts',this)">👤 帳號管理</div>
-    <div class="tab" onclick="showTab('salary',this)">💰 薪資概況</div>
-    <div class="tab" onclick="showTab('calendar',this)">📅 出勤月曆</div>
-    <div class="tab" onclick="showTab('rates',this)">⚙️ 薪資設定</div>
+  <div class="tabs" id="main-tabs">
+    <!-- 動態根據角色顯示 -->
   </div>
 
-  <!-- 帳號管理 -->
-  <div class="page on" id="page-accounts">
-    <div class="card">
+  <!-- 帳號管理 (管理員+幹部) -->
+  <div class="page" id="page-accounts">
+    <div class="card" id="admin-pw-section">
       <div class="card-title">管理員設定</div>
-      <div class="fg"><label>修改管理員密碼</label>
-        <input type="password" id="new-admin-pw" placeholder="輸入新密碼">
-      </div>
+      <div class="fg"><label>修改管理員密碼</label><input type="password" id="new-admin-pw" placeholder="輸入新密碼"></div>
       <button class="btn btn-outline" onclick="changeAdminPw()">🔑 更新管理員密碼</button>
     </div>
+
     <div class="card">
       <div class="card-title">運務士帳號</div>
       <div id="account-list"></div>
@@ -194,7 +191,7 @@
     </div>
   </div>
 
-  <!-- 薪資概況 -->
+  <!-- 薪資概況 (僅管理員) -->
   <div class="page" id="page-salary">
     <div class="card">
       <div class="card-title">選擇月份</div>
@@ -211,11 +208,11 @@
     <div id="salary-content"><div class="empty">請稍候載入...</div></div>
   </div>
 
-  <!-- 出勤月曆 -->
+  <!-- 出勤月曆 (管理員+幹部) -->
   <div class="page" id="page-calendar">
     <div class="card">
       <div class="card-title">出勤月曆</div>
-      <div class="cal-header">
+      <div class="month-nav" style="margin-bottom:12px">
         <button class="nav-btn" onclick="calPrev()">‹</button>
         <div class="month-label" id="cal-month-label"></div>
         <button class="nav-btn" onclick="calNext()">›</button>
@@ -226,20 +223,45 @@
     <div id="cal-detail"></div>
   </div>
 
-  <!-- 薪資設定 -->
+  <!-- 薪資設定+扣款+健保 (僅管理員) -->
   <div class="page" id="page-rates">
+    <!-- 扣款管理 -->
+    <div class="card">
+      <div class="card-title">扣款管理</div>
+      <div class="fg">
+        <label>選擇月份</label>
+        <input type="month" id="deduct-month">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <select id="deduct-driver" style="flex:1">
+          <option value="">選擇司機</option>
+        </select>
+        <button class="btn-sm btn-sm-edit" onclick="loadDeductions()" style="white-space:nowrap;padding:8px 14px">查詢</button>
+      </div>
+      <div id="deduction-list"><div class="empty" style="padding:20px">請選擇月份和司機查詢</div></div>
+      <button class="btn btn-orange" style="margin-top:12px" onclick="openDeductModal()">➕ 新增扣款</button>
+    </div>
+
+    <!-- 健保設定 -->
+    <div class="card">
+      <div class="card-title">健保自付額設定</div>
+      <div class="rate-grid" id="health-grid"></div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="saveHealthSettings()">💾 儲存健保設定</button>
+    </div>
+
+    <!-- 底薪設定 -->
     <div class="card">
       <div class="card-title">底薪設定</div>
-      <div class="fg"><label>預設底薪（所有司機）</label>
-        <input type="number" id="rate-base" placeholder="20000">
-      </div>
+      <div class="fg"><label>預設底薪</label><input type="number" id="rate-base" placeholder="20000"></div>
       <div id="driver-base-list"></div>
     </div>
+
+    <!-- 路線費率 -->
     <div class="card">
       <div class="card-title">路線趟次金額</div>
       <div class="rate-grid" id="rate-grid"></div>
     </div>
-    <button class="btn btn-primary" onclick="saveRates()">💾 儲存所有設定</button>
+    <button class="btn btn-primary" onclick="saveRates()">💾 儲存所有費率設定</button>
   </div>
 </div>
 
@@ -251,9 +273,32 @@
     <input type="hidden" id="modal-old-name">
     <div class="fg"><label>姓名</label><input type="text" id="modal-name" placeholder="請輸入姓名"></div>
     <div class="fg"><label>密碼（4~6碼）</label><input type="password" id="modal-pw" placeholder="請輸入密碼" maxlength="6"></div>
+    <div class="fg"><label>角色</label>
+      <select id="modal-role">
+        <option value="driver">司機</option>
+        <option value="senior">幹部</option>
+      </select>
+    </div>
     <div class="modal-actions">
       <button class="btn-modal-save" onclick="saveAccount()">💾 儲存</button>
       <button class="btn-modal-cancel" onclick="closeModal('account-modal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 扣款 Modal -->
+<div class="modal-bg" id="deduct-modal">
+  <div class="modal">
+    <h3>➕ 新增扣款</h3>
+    <div class="fg"><label>司機</label>
+      <select id="deduct-modal-driver"></select>
+    </div>
+    <div class="fg"><label>月份</label><input type="month" id="deduct-modal-month"></div>
+    <div class="fg"><label>扣款金額</label><input type="number" id="deduct-amount" placeholder="例：500"></div>
+    <div class="fg"><label>扣款原因</label><input type="text" id="deduct-reason" placeholder="例：遲到"></div>
+    <div class="modal-actions">
+      <button class="btn-modal-save" onclick="saveDeduction()">💾 確認扣款</button>
+      <button class="btn-modal-cancel" onclick="closeModal('deduct-modal')">取消</button>
     </div>
   </div>
 </div>
@@ -269,7 +314,7 @@
   </div>
 </div>
 
-<!-- 月曆日期詳細 Modal -->
+<!-- 月曆詳細 Modal -->
 <div class="modal-bg" id="cal-detail-modal">
   <div class="modal">
     <h3 id="cal-detail-title"></h3>
@@ -285,256 +330,318 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbz6s-FJOYLDF9Ex5YO2iUEHY_O0IwwBxclKMUsSGwjcUDIUq61iLOS1M4rLuZh2dmCN/exec';
 const ROUTE_COUNT = 6;
-const DRIVERS = ['李憶擇','梁世昌','劉哲維','陳勇德','王晴益'];
 const RATE_LABELS = {'rate_台南':'台南路線','rate_嘉義':'嘉義路線','rate_雲林':'雲林路線','rate_高雄':'高雄路線','rate_廠提台南':'廠提台南','rate_廠提台中':'廠提台中','rate_轉倉':'轉倉'};
 
 let adminPw = localStorage.getItem('poya_admin_pw') || 'poya2026';
+
+let currentRole = ''; // 'admin' or 'senior'
 let salaryYear, salaryMonth, calYear, calMonth;
 let currentDriverFilter = '';
-let allRecordsCache = null;
-let currentSettings = {};
 let summaryCache = null;
+let currentSettings = {};
 
-function getAccounts(){ return JSON.parse(localStorage.getItem('poya_accounts')||JSON.stringify({'李憶擇':'1116','梁世昌':'5888','劉哲維':'5566','陳勇德':'1122','王晴益':'0000'})); }
-function saveAccounts(a){ localStorage.setItem('poya_accounts',JSON.stringify(a)); }
+// 帳號快取（從 Sheets 載入後存這裡）
+let accountsCache = null;
 
-window.onload = ()=>{
-  const now=new Date();
-  salaryYear=now.getFullYear(); salaryMonth=now.getMonth();
-  calYear=now.getFullYear(); calMonth=now.getMonth();
+async function loadAccountsFromCloud() {
+  const result = await apiCall({action:'getAccounts', password:adminPw});
+  if (result.success) {
+    accountsCache = {};
+    result.accounts.forEach(a => { accountsCache[a.name] = {pw:a.pw, role:a.role}; });
+    return accountsCache;
+  }
+  return {};
+}
+
+function getAccounts() {
+  if (accountsCache) return accountsCache;
+  // fallback 到 localStorage
+  return JSON.parse(localStorage.getItem('poya_accounts') || JSON.stringify({'李憶擇':{pw:'1116',role:'driver'},'梁世昌':{pw:'5888',role:'driver'},'劉哲維':{pw:'5566',role:'driver'},'陳勇德':{pw:'1122',role:'driver'},'王晴益':{pw:'0000',role:'driver'}}));
+}
+
+function getDriverNames() { return Object.keys(getAccounts()); }
+
+window.onload = () => {
+  const now = new Date();
+  salaryYear = now.getFullYear(); salaryMonth = now.getMonth();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
   updateLabels();
-  document.getElementById('admin-pw').addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
+  const now2 = new Date();
+  document.getElementById('deduct-month').value = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
+  document.getElementById('deduct-modal-month').value = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
+  document.getElementById('admin-pw').addEventListener('keydown', e=>{if(e.key==='Enter')adminLogin();});
 };
 
-function updateLabels(){
+function updateLabels() {
   const rS=(salaryYear-1911)+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
   const rC=(calYear-1911)+'年'+String(calMonth+1).padStart(2,'0')+'月';
-  document.getElementById('salary-month-label').textContent=rS;
-  document.getElementById('cal-month-label').textContent=rC;
+  if(document.getElementById('salary-month-label')) document.getElementById('salary-month-label').textContent=rS;
+  if(document.getElementById('cal-month-label')) document.getElementById('cal-month-label').textContent=rC;
 }
 function salaryMonthPrev(){ salaryMonth--; if(salaryMonth<0){salaryMonth=11;salaryYear--;} updateLabels(); loadSalary(); }
 function salaryMonthNext(){ salaryMonth++; if(salaryMonth>11){salaryMonth=0;salaryYear++;} updateLabels(); loadSalary(); }
 function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} updateLabels(); renderCalendar(); }
 function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} updateLabels(); renderCalendar(); }
 
-function adminLogin(){
-  const pw=document.getElementById('admin-pw').value;
-  if(pw!==adminPw){ document.getElementById('login-error').style.display='block'; return; }
+async function adminLogin() {
+  const pw = document.getElementById('admin-pw').value;
+  const err = document.getElementById('login-error');
+  if (pw !== adminPw) { err.style.display='block'; return; }
+  err.style.display='none';
+  currentRole = 'admin';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
+  document.getElementById('role-badge').textContent = '管理員';
+  buildTabs();
+  // 從 Sheets 載入帳號
+  await loadAccountsFromCloud();
   renderAccounts();
+  populateDriverSelects();
   loadSalary();
 }
-function adminLogout(){
+
+function buildTabs() {
+  const tabs = document.getElementById('main-tabs');
+  const allTabs = [
+    {id:'accounts', label:'👤 帳號管理'},
+    {id:'salary', label:'💰 薪資概況'},
+    {id:'calendar', label:'📅 出勤月曆'},
+    {id:'rates', label:'⚙️ 薪資設定'},
+  ];
+  tabs.innerHTML = allTabs.map((t,i)=>`<div class="tab ${i===0?'on':''}" onclick="showTab('${t.id}',this)">${t.label}</div>`).join('');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('page-accounts').classList.add('on');
+}
+
+function adminLogout() {
+  currentRole='';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app-screen').style.display='none';
   document.getElementById('admin-pw').value='';
 }
-function showTab(t,el){
+
+function showTab(t,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('on'));
   document.getElementById('page-'+t).classList.add('on'); el.classList.add('on');
   if(t==='calendar') renderCalendar();
   if(t==='rates') loadRates();
-}
-function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
-function closeModal(id){ document.getElementById(id).classList.remove('show'); }
-function fmt$(n){ return '$'+Number(n).toLocaleString(); }
-function fmtDate(dateStr){
-  const s=String(dateStr||'');
-  // 處理 ISO 格式: 2026-09-30T16:00:00.000Z → 2026-09-30
-  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m) return parseInt(m[2])+'/'+parseInt(m[3]);
-  // 處理 Date 物件
-  if(dateStr instanceof Date) return (dateStr.getMonth()+1)+'/'+dateStr.getDate();
-  return s;
+  if(t==='salary') loadSalary();
 }
 
-// 取日期純字串 YYYY-MM-DD（去掉時區）
-function cleanDate(dateStr){
-  const s=String(dateStr||'');
-  const m=s.match(/^(\d{4}-\d{2}-\d{2})/);
-  return m?m[1]:s;
+function toast(msg) {
+  const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
 }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function fmt$(n) { return '$'+Number(n).toLocaleString(); }
 
-// 修正英文日期格式 "Fri Sep 25" → "2026-09-25"
 function fixDateFormat(dateStr, timeStr) {
-  const s = String(dateStr || '');
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const MONTHS = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
-    Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
-  const eng = s.match(/^[A-Za-z]+ ([A-Za-z]+) (\d+)$/);
-  if (eng) {
-    const submitDate = timeStr ? new Date(timeStr) : new Date();
-    const y = submitDate.getFullYear();
-    const mo = MONTHS[eng[1]] || '01';
-    const d = String(parseInt(eng[2])).padStart(2, '0');
-    return y + '-' + mo + '-' + d;
+  const s = String(dateStr||'');
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const MONTHS={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+  const eng=s.match(/^[A-Za-z]+ ([A-Za-z]+) (\d+)$/);
+  if(eng){
+    const y=(timeStr?new Date(timeStr):new Date()).getFullYear();
+    const mo=MONTHS[eng[1]]||'01';
+    const d=String(parseInt(eng[2])).padStart(2,'0');
+    return y+'-'+mo+'-'+d;
   }
-  if (s.length >= 10) return s.substring(0, 10);
+  if(s.length>=10) return s.substring(0,10);
   return s;
 }
+function fixRecordsDates(records) { return (records||[]).map(r=>({...r,date:fixDateFormat(r.date,r.time)})); }
+function cleanDate(dateStr) { const m=String(dateStr||'').match(/^(\d{4}-\d{2}-\d{2})/); return m?m[1]:String(dateStr||''); }
+function fmtDate(dateStr) { const m=String(dateStr||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?parseInt(m[2])+'/'+parseInt(m[3]):String(dateStr||''); }
 
-// 修正一批資料的日期格式
-function fixRecordsDates(records) {
-  return (records||[]).map(r => ({...r, date: fixDateFormat(r.date, r.time)}));
-}
-
-async function apiCall(data){
-  console.log('📤 API:', data.action, JSON.stringify(data).substring(0,100));
+async function apiCall(data) {
   const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(data)});
-  const json=await res.json();
-  console.log('📥 回應:', data.action, JSON.stringify(json).substring(0,200));
-  return json;
+  return await res.json();
 }
 
-// ── 管理員密碼 ──
-function changeAdminPw(){
+// 密碼管理
+function changeAdminPw() {
   const newPw=document.getElementById('new-admin-pw').value.trim();
-  if(!newPw||newPw.length<4){ toast('⚠️ 密碼至少4碼'); return; }
-  adminPw=newPw;
-  localStorage.setItem('poya_admin_pw',newPw);
+  if(!newPw||newPw.length<4){toast('⚠️ 密碼至少4碼');return;}
+  adminPw=newPw; localStorage.setItem('poya_admin_pw',newPw);
   document.getElementById('new-admin-pw').value='';
-  toast('✅ 管理員密碼已更新！');
+  toast('✅ 管理員密碼已更新');
 }
 
-// ── 帳號管理 ──
-function renderAccounts(){
+
+// 帳號管理
+function renderAccounts() {
   const accounts=getAccounts();
   const list=document.getElementById('account-list');
-  list.innerHTML=Object.entries(accounts).map(([name,pw])=>`
-    <div class="account-item">
+  list.innerHTML=Object.entries(accounts).map(([name,info])=>{
+    const pw=typeof info==='object'?info.pw:info;
+    const role=typeof info==='object'?info.role:'driver';
+    const roleLabel=role==='senior'?'幹部':'司機';
+    const roleCls=role==='senior'?'role-senior':'role-driver';
+    return `<div class="account-item">
       <div class="account-info">
         <div class="account-avatar">${name[0]}</div>
-        <div><div class="account-name">${name}</div><div class="account-pw">密碼：${'●'.repeat(pw.length)}</div></div>
+        <div>
+          <div class="account-name">${name} <span class="driver-role-badge ${roleCls}">${roleLabel}</span></div>
+          <div class="account-detail">密碼：${'●'.repeat(pw.length)} ｜ 角色：${role==='senior'?'🔵 幹部':'⚪ 司機'}</div>
+        </div>
       </div>
       <div class="account-actions">
-        <button class="btn-sm btn-sm-edit" onclick="openEditModal('${name}','${pw}')">✏️ 修改</button>
+        <button class="btn-sm btn-sm-edit" onclick="openEditModal('${name}','${pw}','${role}')">✏️ 修改</button>
         <button class="btn-sm btn-sm-del" onclick="deleteAccount('${name}')">🗑️ 刪除</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
-function openAddModal(){
+
+function populateDriverSelects() {
+  const names = getDriverNames();
+  ['deduct-driver','deduct-modal-driver'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.innerHTML='<option value="">選擇司機</option>'+names.map(n=>`<option>${n}</option>`).join('');
+  });
+}
+
+function openAddModal() {
   document.getElementById('modal-title').textContent='➕ 新增運務士';
   document.getElementById('modal-mode').value='add';
   document.getElementById('modal-old-name').value='';
   document.getElementById('modal-name').value='';
   document.getElementById('modal-pw').value='';
+  document.getElementById('modal-role').value='driver';
   document.getElementById('account-modal').classList.add('show');
 }
-function openEditModal(name,pw){
+function openEditModal(name,pw,role) {
   document.getElementById('modal-title').textContent='✏️ 修改帳號';
   document.getElementById('modal-mode').value='edit';
   document.getElementById('modal-old-name').value=name;
   document.getElementById('modal-name').value=name;
   document.getElementById('modal-pw').value=pw;
+  document.getElementById('modal-role').value=role||'driver';
   document.getElementById('account-modal').classList.add('show');
 }
-function saveAccount(){
+async function saveAccount() {
   const mode=document.getElementById('modal-mode').value;
   const oldName=document.getElementById('modal-old-name').value;
   const name=document.getElementById('modal-name').value.trim();
   const pw=document.getElementById('modal-pw').value.trim();
-  if(!name){ toast('⚠️ 請輸入姓名'); return; }
-  if(!pw||pw.length<4){ toast('⚠️ 密碼至少4碼'); return; }
-  const accounts=getAccounts();
-  if(mode==='add'&&accounts[name]){ toast('⚠️ 姓名已存在'); return; }
-  if(mode==='edit'&&oldName!==name) delete accounts[oldName];
-  accounts[name]=pw;
-  saveAccounts(accounts);
-  closeModal('account-modal');
-  renderAccounts();
-  toast('✅ 已'+(mode==='add'?'新增':'更新')+' '+name);
-  setTimeout(()=>toast('⚠️ 記得同步更新 index.html 的帳號設定'),3500);
+  const role=document.getElementById('modal-role').value;
+  if(!name){toast('⚠️ 請輸入姓名');return;}
+  if(!pw||pw.length<4){toast('⚠️ 密碼至少4碼');return;}
+  try {
+    const result = await apiCall({
+      action:'saveAccount', password:adminPw,
+      oldName: mode==='edit'?oldName:null,
+      name, pw, role
+    });
+    if(!result.success){toast('❌ '+(result.error||'儲存失敗'));return;}
+    // 更新本地快取
+    if(accountsCache) {
+      if(mode==='edit'&&oldName!==name) delete accountsCache[oldName];
+      accountsCache[name]={pw,role};
+    }
+    closeModal('account-modal');
+    renderAccounts();
+    populateDriverSelects();
+    toast('✅ 已'+(mode==='add'?'新增':'更新')+' '+name+'（已同步雲端）');
+  } catch(e){ toast('❌ 連線失敗'); }
 }
-function deleteAccount(name){
-  if(!confirm(`確定刪除「${name}」？`)) return;
-  const accounts=getAccounts();
-  delete accounts[name];
-  saveAccounts(accounts);
-  renderAccounts();
-  toast('🗑️ 已刪除 '+name);
+async function deleteAccount(name) {
+  if(!confirm(`確定刪除「${name}」？`))return;
+  try {
+    const result = await apiCall({action:'deleteAccount', password:adminPw, name});
+    if(!result.success){toast('❌ '+(result.error||'刪除失敗'));return;}
+    if(accountsCache) delete accountsCache[name];
+    renderAccounts(); populateDriverSelects();
+    toast('🗑️ 已刪除 '+name+'（已同步雲端）');
+  } catch(e){ toast('❌ 連線失敗'); }
 }
 
-// ── 薪資概況 ──
-function setDriverFilter(name){
+// 篩選
+function setDriverFilter(name) {
   currentDriverFilter=name;
   document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('on',c.dataset.name===name));
   renderSalaryCards(summaryCache);
 }
 
-async function loadSalary(){
+// 薪資概況
+async function loadSalary() {
   document.getElementById('salary-content').innerHTML='<div class="loading">🔄 載入中...</div>';
   document.getElementById('salary-stats').innerHTML='';
-  console.log('💰 loadSalary 呼叫 - year:', salaryYear, 'month:', salaryMonth+1, 'adminPw:', adminPw);
-  try{
+  try {
     const result=await apiCall({action:'getSummary',password:adminPw,year:salaryYear,month:salaryMonth+1});
-    console.log('💰 getSummary 回傳:', JSON.stringify(result).substring(0,300));
-    if(result.error){ document.getElementById('salary-content').innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
-    // 修正 summary 裡每筆 record 的日期格式
-    if(result.summary) {
-      result.summary.forEach(d => {
-        if(d.records) d.records = fixRecordsDates(d.records);
-      });
-    }
+    if(result.error){document.getElementById('salary-content').innerHTML=`<div class="empty">❌ ${result.error}</div>`;return;}
+    if(result.summary) result.summary.forEach(d=>{if(d.records)d.records=fixRecordsDates(d.records);});
     summaryCache=result.summary;
     currentSettings=result.settings||{};
 
-    // 更新篩選按鈕
     const chips=document.getElementById('driver-filter-chips');
     chips.innerHTML=`<div class="filter-chip on" onclick="setDriverFilter('')" data-name="">全部司機</div>`
-      +summaryCache.map(d=>`<div class="filter-chip" onclick="setDriverFilter('${d.name}')" data-name="${d.name}">${d.name}</div>`).join('');
+      +(summaryCache||[]).map(d=>`<div class="filter-chip" onclick="setDriverFilter('${d.name}')" data-name="${d.name}">${d.name}</div>`).join('');
 
-    // 總覽統計
-    const totalSalary=summaryCache.reduce((s,d)=>s+d.salary+(d.baseSalary||0),0);
-    const totalTrips=summaryCache.reduce((s,d)=>s+d.trips,0);
+    const totalSalary=(summaryCache||[]).reduce((s,d)=>s+d.salary+(d.baseSalary||0)-(d.healthInsurance||0)-((d.deductions||[]).reduce((a,x)=>a+parseInt(x.amount||0),0)),0);
+    const totalTrips=(summaryCache||[]).reduce((s,d)=>s+d.trips,0);
     document.getElementById('salary-stats').innerHTML=`
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-num" style="color:var(--pink)">${fmt$(totalSalary)}</div><div class="stat-lbl">本月總薪資（含底薪）</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--pink)">${fmt$(totalSalary)}</div><div class="stat-lbl">本月實領總額</div></div>
         <div class="stat-box"><div class="stat-num" style="color:var(--orange)">${totalTrips}</div><div class="stat-lbl">總趟數</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${summaryCache.length}</div><div class="stat-lbl">出勤人數</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${(summaryCache||[]).length}</div><div class="stat-lbl">出勤人數</div></div>
       </div>`;
     renderSalaryCards(summaryCache);
-  }catch(e){
+  } catch(e) {
     document.getElementById('salary-content').innerHTML='<div class="empty">❌ 連線失敗</div>';
   }
 }
 
-function renderSalaryCards(summary){
-  if(!summary){ return; }
+function renderSalaryCards(summary) {
+  if(!summary){return;}
   const filtered=currentDriverFilter?summary.filter(d=>d.name===currentDriverFilter):summary;
-  if(!filtered.length){ document.getElementById('salary-content').innerHTML='<div class="empty">本月尚無資料</div>'; return; }
-  document.getElementById('salary-content').innerHTML=`<div class="driver-cards">${filtered.map(d=>{
+  if(!filtered.length){document.getElementById('salary-content').innerHTML='<div class="empty">本月尚無資料</div>';return;}
+  document.getElementById('salary-content').innerHTML=filtered.map(d=>{
     const base=d.baseSalary||0;
-    const total=d.salary+base;
+    const health=d.healthInsurance||0;
+    const deductTotal=(d.deductions||[]).reduce((s,x)=>s+parseInt(x.amount||0),0);
+    const total=d.salary+base-health-deductTotal;
+    const accounts=getAccounts();
+    const roleInfo=accounts[d.name];
+    const role=typeof roleInfo==='object'?roleInfo.role:'driver';
+    const roleLabel=role==='senior'?'幹部':'司機';
+    const roleCls=role==='senior'?'role-senior':'role-driver';
+
     const areaRows=Object.entries(d.areas||{}).filter(([k,v])=>v>0).map(([k,v])=>`
       <div class="driver-row"><span class="lbl">${k}路線</span><span class="val">${v}趟 = ${fmt$(v*(parseInt(currentSettings['rate_'+k])||0))}</span></div>`).join('');
     const facRows=Object.entries(d.factory||{}).filter(([k,v])=>v>0).map(([k,v])=>`
       <div class="driver-row"><span class="lbl">廠提${k}</span><span class="val">${v}趟 = ${fmt$(v*(parseInt(currentSettings['rate_廠提'+k])||0))}</span></div>`).join('');
     const trRow=d.transfer>0?`<div class="driver-row"><span class="lbl">轉倉</span><span class="val">${d.transfer}次 = ${fmt$(d.transfer*(parseInt(currentSettings['rate_轉倉'])||300))}</span></div>`:'';
+    const healthRow=health>0?`<div class="driver-row" style="color:#e74c3c"><span class="lbl">健保自付額</span><span class="val">- ${fmt$(health)}</span></div>`:'';
+    const deductRows=(d.deductions||[]).map(x=>`<div class="deduction-row"><span>${x.reason||'扣款'}</span><span>- ${fmt$(parseInt(x.amount||0))}</span></div>`).join('');
+
     return `<div class="driver-card" onclick="showDriverDetail('${d.name}')">
       <div class="driver-header">
-        <div class="driver-name">👤 ${d.name}</div>
+        <div class="driver-name">👤 ${d.name} <span class="driver-role-badge ${roleCls}">${roleLabel}</span></div>
         <div class="driver-total">
           <div class="driver-salary">${fmt$(total)}</div>
-          <div class="driver-base">底薪 ${fmt$(base)} + 趟次 ${fmt$(d.salary)}</div>
+          <div class="driver-base">底薪${fmt$(base)} + 趟次${fmt$(d.salary)}</div>
+          ${health>0?`<div style="font-size:10px;color:#e74c3c">健保 -${fmt$(health)}</div>`:''}
+          ${deductTotal>0?`<div style="font-size:10px;color:#e74c3c">扣款 -${fmt$(deductTotal)}</div>`:''}
         </div>
       </div>
       <div class="driver-row"><span class="lbl">本月趟數</span><span class="val">${d.trips} 趟</span></div>
-      ${areaRows}${facRows}${trRow}
-      <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--sub)">點擊查看出勤紀錄 →</div>
+      ${areaRows}${facRows}${trRow}${healthRow}${deductRows}
+      <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--sub)">點擊查看詳細紀錄 →</div>
     </div>`;
-  }).join('')}</div>`;
+  }).join('');
 }
 
-function showDriverDetail(name){
+function showDriverDetail(name) {
   const d=summaryCache?.find(x=>x.name===name);
-  if(!d) return;
+  if(!d)return;
   document.getElementById('detail-modal-title').textContent='📋 '+name+' 出勤紀錄';
   const records=(d.records||[]).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   document.getElementById('detail-modal-content').innerHTML=records.length===0?'<div class="empty">無紀錄</div>':records.map(r=>{
     const routes=[];
-    for(let n=1;n<=ROUTE_COUNT;n++) if(r['r'+n]) routes.push(r['r'+n]+(r['a'+n]?'('+r['a'+n]+')':'')+(r['c'+n]?r['c'+n]+'間':''));
+    for(let n=1;n<=ROUTE_COUNT;n++) if(r['r'+n]) routes.push(r['r'+n]+(r['a'+n]?'('+r['a'+n]+')':'')+(r['t'+n]?'['+r['t'+n]+']':''));
     return `<div class="detail-record">
       <div class="detail-name">📅 ${fmtDate(r.date)}</div>
       ${routes.map((rt,i)=>`<div class="detail-row"><span class="lbl">趟次${i+1}</span><span class="val">${rt}</span></div>`).join('')}
@@ -545,58 +652,44 @@ function showDriverDetail(name){
   document.getElementById('driver-detail-modal').classList.add('show');
 }
 
-// ── 出勤月曆 ──
-async function renderCalendar(){
+// 出勤月曆
+async function renderCalendar() {
   const grid=document.getElementById('cal-grid');
   grid.innerHTML='<div class="loading" style="grid-column:span 7">🔄 載入中...</div>';
   document.getElementById('cal-summary').innerHTML='';
-  document.getElementById('cal-detail').innerHTML='';
-
-  try{
+  try {
     const result=await apiCall({action:'getAllRecords',password:adminPw});
-    if(result.error){ grid.innerHTML='<div class="empty" style="grid-column:span 7">❌ '+result.error+'</div>'; return; }
-    // 修正日期格式
-    if(result.records) result.records = fixRecordsDates(result.records);
+    if(result.error){grid.innerHTML='<div class="empty" style="grid-column:span 7">❌ '+result.error+'</div>';return;}
+    if(result.records) result.records=fixRecordsDates(result.records);
 
     const prefix=String(calYear)+'-'+String(calMonth+1).padStart(2,'0');
     const records=result.records.filter(r=>{
-      const d=cleanDate(String(r.date||''));
-      return d.startsWith(prefix);
+      const d=cleanDate(String(r.date||'')); return d.startsWith(prefix);
     });
 
-    // 月統計
-    let totalTrips=0, totalTransfer=0, totalFactory=0;
+    let totalTrips=0,totalTransfer=0,totalFactory=0;
     const tonCounts={'11噸':0,'6.5噸':0,'3.5噸':0};
     records.forEach(r=>{
-      for(let n=1;n<=ROUTE_COUNT;n++){
-        if(r['r'+n]){ totalTrips++; const t=(r['t'+n]||'').trim(); if(tonCounts[t]!==undefined)tonCounts[t]++; }
-      }
-      if(r.factory&&r.factory!=='無'){ totalFactory++; const t=(r.factoryTon||'').trim(); if(tonCounts[t]!==undefined)tonCounts[t]++; }
+      for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n]){totalTrips++;const t=(r['t'+n]||'').trim();if(tonCounts[t]!==undefined)tonCounts[t]++;}}
+      if(r.factory&&r.factory!=='無'){totalFactory++;const t=(r.factoryTon||'').trim();if(tonCounts[t]!==undefined)tonCounts[t]++;}
       totalTransfer+=parseInt(r.transfer||0);
     });
 
     document.getElementById('cal-summary').innerHTML=`
-      <div class="stats-row" style="flex-wrap:wrap">
+      <div class="stats-row">
         <div class="stat-box"><div class="stat-num" style="color:var(--pink)">${totalTrips}</div><div class="stat-lbl">本月總趟次</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--orange)">${totalTransfer}</div><div class="stat-lbl">轉倉總次</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${totalFactory}</div><div class="stat-lbl">廠提總次</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--orange)">${totalTransfer}</div><div class="stat-lbl">轉倉</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${totalFactory}</div><div class="stat-lbl">廠提</div></div>
       </div>
       <div class="stats-row">
-        ${Object.entries(tonCounts).map(([t,v])=>`<div class="stat-box"><div class="stat-num" style="color:var(--sub);font-size:18px">${v}</div><div class="stat-lbl">${t}</div></div>`).join('')}
+        ${Object.entries(tonCounts).map(([t,v])=>`<div class="stat-box"><div class="stat-num" style="color:var(--sub);font-size:16px">${v}</div><div class="stat-lbl">${t}</div></div>`).join('')}
       </div>`;
 
-    // 月曆
     const firstDay=new Date(calYear,calMonth,1).getDay();
     const dim=new Date(calYear,calMonth+1,0).getDate();
     const today=new Date().toISOString().split('T')[0];
-
-    // 整理每天的紀錄
     const dayMap={};
-    records.forEach(r=>{
-      const ds=cleanDate(String(r.date||''));
-      if(!dayMap[ds]) dayMap[ds]=[];
-      dayMap[ds].push(r);
-    });
+    records.forEach(r=>{const ds=cleanDate(String(r.date||''));if(!dayMap[ds])dayMap[ds]=[];dayMap[ds].push(r);});
 
     grid.innerHTML=['日','一','二','三','四','五','六'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
     for(let i=0;i<firstDay;i++) grid.innerHTML+=`<div class="cal-day empty-day"></div>`;
@@ -604,39 +697,30 @@ async function renderCalendar(){
       const ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
       const recs=dayMap[ds]||[];
       const isSun=new Date(calYear,calMonth,d).getDay()===0;
-      const hasRec=recs.length>0;
       const tripCount=recs.reduce((s,r)=>{let c=0;for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])c++;}if(r.factory&&r.factory!=='無')c++;return s+c;},0);
-      grid.innerHTML+=`<div class="cal-day${isSun?' sunday':''}${ds===today?' today':''}${hasRec?' has-record':''}" onclick="${hasRec?`showCalDetail('${ds}')`:''}" style="${!hasRec?'cursor:default':''}">
+      grid.innerHTML+=`<div class="cal-day${isSun?' sunday':''}${ds===today?' today':''}${recs.length>0?' has-record':''}" onclick="${recs.length>0?`showCalDetail('${ds}')`:''}" style="${recs.length===0?'cursor:default':''}">
         <div class="cal-day-num">${d}</div>
-        ${hasRec?`<div class="cal-trip">${tripCount}趟<br>${recs.length}人</div>`:''}
+        ${recs.length>0?`<div class="cal-trip">${tripCount}趟 ${recs.length}人</div>`:''}
       </div>`;
     }
-
-    // 存起來供 showCalDetail 用
     window._calDayMap=dayMap;
-  }catch(e){
+  } catch(e) {
     grid.innerHTML='<div class="empty" style="grid-column:span 7">❌ 連線失敗</div>';
   }
 }
 
-function showCalDetail(ds){
+function showCalDetail(ds) {
   const recs=(window._calDayMap||{})[ds]||[];
-  if(!recs.length) return;
+  if(!recs.length)return;
   const m=ds.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  const dateLabel=m?parseInt(m[2])+'/'+parseInt(m[3]):ds;
-  document.getElementById('cal-detail-title').textContent='📅 '+dateLabel+' 出勤狀況（'+recs.length+'人）';
-
-  // 當天統計
-  let dayTrips=0, dayTransfer=0, dayFactory=0;
+  document.getElementById('cal-detail-title').textContent='📅 '+(m?parseInt(m[2])+'/'+parseInt(m[3]):ds)+' 出勤狀況（'+recs.length+'人）';
+  let dayTrips=0,dayTransfer=0,dayFactory=0;
   const dayTons={'11噸':0,'6.5噸':0,'3.5噸':0};
   recs.forEach(r=>{
-    for(let n=1;n<=ROUTE_COUNT;n++){
-      if(r['r'+n]){ dayTrips++; const t=(r['t'+n]||'').trim(); if(dayTons[t]!==undefined)dayTons[t]++; }
-    }
-    if(r.factory&&r.factory!=='無'){ dayFactory++; }
+    for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n]){dayTrips++;const t=(r['t'+n]||'').trim();if(dayTons[t]!==undefined)dayTons[t]++;}}
+    if(r.factory&&r.factory!=='無')dayFactory++;
     dayTransfer+=parseInt(r.transfer||0);
   });
-
   const statsHtml=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
     <div class="stat-box" style="flex:1"><div class="stat-num" style="font-size:20px;color:var(--pink)">${dayTrips}</div><div class="stat-lbl">趟次</div></div>
     <div class="stat-box" style="flex:1"><div class="stat-num" style="font-size:20px;color:var(--orange)">${dayTransfer}</div><div class="stat-lbl">轉倉</div></div>
@@ -645,19 +729,10 @@ function showCalDetail(ds){
   <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
     ${Object.entries(dayTons).map(([t,v])=>v>0?`<span style="background:var(--pink-l);color:var(--pink);border-radius:12px;padding:3px 10px;font-size:12px;font-weight:700">${t}: ${v}趟</span>`:'').join('')}
   </div>`;
-
   document.getElementById('cal-detail-content').innerHTML=statsHtml+recs.map(r=>{
     const routes=[];
-    for(let n=1;n<=ROUTE_COUNT;n++){
-      if(r['r'+n]){
-        let rt=r['r'+n];
-        if(r['a'+n]) rt+='（'+r['a'+n]+'）';
-        if(r['c'+n]) rt+=' '+r['c'+n]+'間';
-        if(r['t'+n]) rt+=' ['+r['t'+n]+']';
-        routes.push(rt);
-      }
-    }
-    const fac=r.factory&&r.factory!=='無'?(r.factory+(r.factoryCount?'（'+r.factoryCount+'間）':'')+(r.factoryTon?'['+r.factoryTon+']':'')):'';
+    for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n]){let rt=r['r'+n];if(r['a'+n])rt+='（'+r['a'+n]+'）';if(r['c'+n])rt+=' '+r['c'+n]+'間';if(r['t'+n])rt+=' ['+r['t'+n]+']';routes.push(rt);}}
+    const fac=r.factory&&r.factory!=='無'?r.factory+(r.factoryTon?'['+r.factoryTon+']':''):'';
     return `<div class="detail-record">
       <div class="detail-name">👤 ${r.name}${r.plate?' · '+r.plate:''}</div>
       ${routes.map((rt,i)=>`<div class="detail-row"><span class="lbl">趟次${i+1}</span><span class="val">${rt}</span></div>`).join('')}
@@ -668,19 +743,84 @@ function showCalDetail(ds){
   document.getElementById('cal-detail-modal').classList.add('show');
 }
 
-// ── 薪資設定 ──
-async function loadRates(){
-  try{
+// 扣款
+function openDeductModal() {
+  document.getElementById('deduct-modal').classList.add('show');
+}
+async function saveDeduction() {
+  const name=document.getElementById('deduct-modal-driver').value;
+  const monthVal=document.getElementById('deduct-modal-month').value;
+  const amount=document.getElementById('deduct-amount').value;
+  const reason=document.getElementById('deduct-reason').value.trim();
+  if(!name){toast('⚠️ 請選擇司機');return;}
+  if(!amount||parseInt(amount)<=0){toast('⚠️ 請輸入扣款金額');return;}
+  if(!reason){toast('⚠️ 請輸入扣款原因');return;}
+  const [y,m]=monthVal.split('-');
+  try {
+    const result=await apiCall({action:'addDeduction',password:adminPw,name,year:parseInt(y),month:parseInt(m),amount:parseInt(amount),reason});
+    if(result.success){
+      toast('✅ 扣款已新增');
+      closeModal('deduct-modal');
+      document.getElementById('deduct-amount').value='';
+      document.getElementById('deduct-reason').value='';
+      loadDeductions();
+      if(summaryCache) loadSalary();
+    } else { toast('❌ '+result.error); }
+  } catch(e){ toast('❌ 連線失敗'); }
+}
+async function loadDeductions() {
+  const name=document.getElementById('deduct-driver').value;
+  const monthVal=document.getElementById('deduct-month').value;
+  if(!monthVal){toast('⚠️ 請選擇月份');return;}
+  const [y,m]=monthVal.split('-');
+  const list=document.getElementById('deduction-list');
+  list.innerHTML='<div class="loading">🔄 載入中...</div>';
+  try {
+    const result=await apiCall({action:'getDeductions',password:adminPw,name:name||null,year:parseInt(y),month:parseInt(m)});
+    if(result.error){list.innerHTML=`<div class="empty">❌ ${result.error}</div>`;return;}
+    const deductions=result.deductions||[];
+    if(!deductions.length){list.innerHTML='<div class="empty" style="padding:20px">無扣款紀錄</div>';return;}
+    list.innerHTML=deductions.map(d=>`
+      <div class="deduction-item">
+        <div class="deduction-info">
+          <div class="name">👤 ${d.name}</div>
+          <div class="reason">${d.reason}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="deduction-amount">-${fmt$(parseInt(d.amount||0))}</div>
+          <button class="btn-sm btn-sm-del" onclick="removeDeduction('${d.id}')">🗑️</button>
+        </div>
+      </div>`).join('');
+  } catch(e){ list.innerHTML='<div class="empty">❌ 連線失敗</div>'; }
+}
+async function removeDeduction(id) {
+  if(!confirm('確定刪除此扣款？'))return;
+  const result=await apiCall({action:'deleteDeduction',password:adminPw,id});
+  if(result.success){toast('🗑️ 已刪除');loadDeductions();if(summaryCache)loadSalary();}
+  else toast('❌ '+result.error);
+}
+
+// 薪資設定
+async function loadRates() {
+  try {
     const result=await apiCall({action:'getSettings',password:adminPw});
-    if(result.error){ toast('❌ '+result.error); return; }
+    if(result.error){toast('❌ '+result.error);return;}
     currentSettings=result.settings;
     const s=result.settings;
-
     document.getElementById('rate-base').value=s['base_salary']||20000;
 
-    // 各司機底薪
     const accounts=getAccounts();
-    document.getElementById('driver-base-list').innerHTML=`<div style="margin-top:10px"><div class="card-title" style="margin-bottom:10px">各司機個別底薪（留空則使用預設）</div><div class="rate-grid">${Object.keys(accounts).map(name=>`
+    const names=Object.keys(accounts);
+
+    // 健保設定
+    document.getElementById('health-grid').innerHTML=names.map(name=>`
+      <div class="rate-item">
+        <div class="rate-label">👤 ${name}</div>
+        <input class="rate-input" type="number" id="health-${name}" placeholder="0" value="${s['health_'+name]||''}">
+      </div>`).join('');
+
+    // 各司機底薪
+    document.getElementById('driver-base-list').innerHTML=`<div style="margin-top:10px"><div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:8px">各司機個別底薪</div><div class="rate-grid">${names.map(name=>`
       <div class="rate-item"><div class="rate-label">${name}</div>
       <input class="rate-input" type="number" id="base-${name}" placeholder="${s['base_salary']||20000}" value="${s['base_salary_'+name]||''}">
       </div>`).join('')}</div></div>`;
@@ -690,27 +830,40 @@ async function loadRates(){
       <div class="rate-item"><div class="rate-label">${label}</div>
       <input class="rate-input" type="number" id="rate-${key}" value="${s[key]||0}">
       </div>`).join('');
-  }catch(e){ toast('❌ 載入失敗'); }
+  } catch(e){ toast('❌ 載入失敗'); }
 }
 
-async function saveRates(){
+async function saveHealthSettings() {
+  const accounts=getAccounts();
+  const newSettings={};
+  Object.keys(accounts).forEach(name=>{
+    const v=document.getElementById('health-'+name)?.value;
+    newSettings['health_'+name]=v||'0';
+  });
+  try {
+    const result=await apiCall({action:'saveSettings',password:adminPw,settings:newSettings});
+    if(result.success) toast('✅ 健保設定已儲存！');
+    else toast('❌ 儲存失敗');
+  } catch(e){ toast('❌ 連線失敗'); }
+}
+
+async function saveRates() {
   const accounts=getAccounts();
   const newSettings={};
   newSettings['base_salary']=document.getElementById('rate-base').value||20000;
   Object.keys(accounts).forEach(name=>{
     const v=document.getElementById('base-'+name)?.value;
     if(v) newSettings['base_salary_'+name]=v;
-    else delete newSettings['base_salary_'+name];
   });
   Object.keys(RATE_LABELS).forEach(key=>{
     const v=document.getElementById('rate-'+key)?.value;
     if(v!==undefined) newSettings[key]=v;
   });
-  try{
+  try {
     const result=await apiCall({action:'saveSettings',password:adminPw,settings:newSettings});
-    if(result.success){ toast('✅ 設定已儲存！'); currentSettings={...currentSettings,...newSettings}; }
+    if(result.success){toast('✅ 費率設定已儲存！');currentSettings={...currentSettings,...newSettings};}
     else toast('❌ 儲存失敗');
-  }catch(e){ toast('❌ 連線失敗'); }
+  } catch(e){ toast('❌ 連線失敗'); }
 }
 </script>
 </body>

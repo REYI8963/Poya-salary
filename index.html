@@ -141,11 +141,7 @@
   <div class="login-card">
     <h2>👤 登入您的帳號</h2>
     <p>請選擇姓名並輸入您的專屬密碼</p>
-    <select id="login-name">
-      <option value="">── 請選擇姓名 ──</option>
-      <option>李憶擇</option><option>梁世昌</option><option>劉哲維</option>
-      <option>陳勇德</option><option>王晴益</option>
-    </select>
+    <input type="text" id="login-name" placeholder="請輸入姓名" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:12px;font-size:16px;background:var(--pink-ll);color:var(--text);-webkit-appearance:none;margin-bottom:8px">
     <input type="password" id="login-pw" placeholder="請輸入密碼" maxlength="6" style="letter-spacing:4px;font-size:20px">
     <button class="btn-login" onclick="doLogin()">進入系統 →</button>
     <div class="login-error" id="login-error"></div>
@@ -179,6 +175,8 @@
     <div class="tab" onclick="showTab('calendar',this)">📅 出勤月曆</div>
     <div class="tab" onclick="showTab('salary',this)">💰 本月薪資</div>
     <div class="tab" onclick="showTab('download',this)">⬇️ PDF匯出</div>
+    <div class="tab" id="senior-cal-tab" style="display:none" onclick="showTab('senior-cal',this)">👥 全員月曆</div>
+    <div class="tab" id="senior-cal-tab" style="display:none" onclick="showTab('senior-cal',this)">👥 全員月曆</div>
   </div>
 
   <!-- 填報 -->
@@ -263,6 +261,19 @@
       </div>
     </div>
     <div id="salary-content"></div>
+  </div>
+
+  <!-- 幹部全員月曆 -->
+  <div class="page" id="page-senior-cal">
+    <div class="card">
+      <div class="card-title">全員出勤月曆</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <button class="cal-nav" onclick="seniorCalPrev()">‹</button>
+        <div style="flex:1;text-align:center;font-size:15px;font-weight:700" id="senior-cal-label"></div>
+        <button class="cal-nav" onclick="seniorCalNext()">›</button>
+      </div>
+      <div class="cal-grid" id="senior-cal-grid"></div>
+    </div>
   </div>
 
   <!-- PDF匯出 -->
@@ -351,7 +362,27 @@
 
 
 <script>
-const USERS = {'李憶擇':'1116','梁世昌':'5888','劉哲維':'5566','陳勇德':'1122','王晴益':'0000'};
+// 帳號資料從 localStorage 讀取（由管理員後台管理）
+function getUsers() {
+  const def = {'李憶擇':{pw:'1116',role:'driver'},'梁世昌':{pw:'5888',role:'driver'},'劉哲維':{pw:'5566',role:'driver'},'陳勇德':{pw:'1122',role:'driver'},'王晴益':{pw:'0000',role:'driver'}};
+  return JSON.parse(localStorage.getItem('poya_accounts') || JSON.stringify(def));
+}
+
+// 取得帳號角色（從後台管理員設定的 localStorage）
+function getUserRole(name) {
+  // 嘗試從後台同步的帳號資料取得角色
+  try {
+    const accounts = JSON.parse(localStorage.getItem('poya_accounts') || '{}');
+    const info = accounts[name];
+    if (info && typeof info === 'object') return info.role || 'driver';
+  } catch(e) {}
+  return 'driver';
+}
+// 檢查當前使用者是否為幹部
+function isSenior(){
+  return currentUserRole === 'senior';
+}
+
 const API_URL = 'https://script.google.com/macros/s/AKfycbz6s-FJOYLDF9Ex5YO2iUEHY_O0IwwBxclKMUsSGwjcUDIUq61iLOS1M4rLuZh2dmCN/exec';
 
 async function apiCall(data) {
@@ -373,9 +404,11 @@ const AREAS = ['雲林','嘉義','台南','高雄'];
 const ROUTE_COLORS = ['#e8317a','#f47920','#3aaa35','#9b59b6','#1a73e8','#e67e22'];
 const ROUTE_COUNT = 6;
 let currentUser = sessionStorage.getItem('poya_user') || null;
+let currentUserRole = sessionStorage.getItem('poya_role') || 'driver';
 let calYear, calMonth;
 let recordYear, recordMonth;
 let salaryYear, salaryMonth;
+let seniorCalYear, seniorCalMonth;
 
 let SALARY_RATES = {
   '台南': 1000, '嘉義': 1400, '雲林': 1600, '高雄': 1000,
@@ -584,6 +617,7 @@ window.onload = ()=>{
   calYear=now.getFullYear(); calMonth=now.getMonth();
   recordYear=now.getFullYear(); recordMonth=now.getMonth();
   salaryYear=now.getFullYear(); salaryMonth=now.getMonth();
+  seniorCalYear=now.getFullYear(); seniorCalMonth=now.getMonth();
   updateTenPreview();
   document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 };
@@ -593,10 +627,17 @@ function showApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
   document.getElementById('user-badge').textContent=currentUser;
+  // 幹部顯示全員月曆 tab
+  const seniorCalTab = document.getElementById('senior-cal-tab');
+  if(seniorCalTab) seniorCalTab.style.display = isSenior() ? '' : 'none';
   buildRouteInputs('routes-container','',ROUTE_COUNT);
   buildRouteInputs('edit-routes-container','edit-',ROUTE_COUNT);
   console.log('🚀 showApp 啟動，使用者:', currentUser);
   console.log('📦 本地資料:', JSON.stringify(getRecords()).substring(0,200));
+  // 檢查幹部權限，顯示額外 tab
+  const role = getUserRole(currentUser);
+  const seniorTab = document.getElementById('senior-cal-tab');
+  if(seniorTab) seniorTab.style.display = role==='senior' ? 'block' : 'none';
   loadMyRecords();
   syncFromCloud();
   syncRatesFromCloud();
@@ -605,10 +646,43 @@ function showApp(){
   document.getElementById('salary-month-label').textContent=(salaryYear-1911)+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
 }
 function doLogin(){
-  const name=document.getElementById('login-name').value, pw=document.getElementById('login-pw').value, err=document.getElementById('login-error');
+  const name=document.getElementById('login-name').value;
+  const pw=document.getElementById('login-pw').value;
+  const err=document.getElementById('login-error');
   if(!name){err.textContent='⚠️ 請選擇姓名';err.style.display='block';return;}
-  if(USERS[name]!==pw){err.textContent='❌ 密碼錯誤，請重新輸入';err.style.display='block';document.getElementById('login-pw').value='';return;}
-  err.style.display='none'; currentUser=name; sessionStorage.setItem('poya_user',name); showApp();
+  const btn=document.getElementById('login-btn');
+  if(btn){btn.textContent='驗證中...';btn.disabled=true;}
+  err.style.display='none';
+  // 先嘗試雲端驗證
+  apiCall({action:'login',name,pw}).then(result=>{
+    if(result.success){
+      currentUser=result.name;
+      currentUserRole=result.role||'driver';
+      sessionStorage.setItem('poya_user',result.name);
+      sessionStorage.setItem('poya_role',result.role||'driver');
+      showApp();
+    } else {
+      err.textContent='❌ 密碼錯誤，請重新輸入';
+      err.style.display='block';
+    }
+  }).catch(e=>{
+    // 離線時 fallback 本地驗證
+    const users=getUsers();
+    const info=users[name];
+    const correct=typeof info==='object'?info.pw:info;
+    if(info&&String(correct)===String(pw)){
+      currentUser=name;
+      currentUserRole=typeof info==='object'?(info.role||'driver'):'driver';
+      sessionStorage.setItem('poya_user',name);
+      sessionStorage.setItem('poya_role',currentUserRole);
+      showApp();
+    } else {
+      err.textContent='❌ 密碼錯誤，請重新輸入';
+      err.style.display='block';
+    }
+  }).finally(()=>{
+    if(btn){btn.textContent='🔑 登入';btn.disabled=false;}
+  });
 }
 function doLogout(){ currentUser=null; sessionStorage.removeItem('poya_user'); document.getElementById('login-name').value=''; document.getElementById('login-pw').value=''; showLogin(); }
 
@@ -619,6 +693,7 @@ function showTab(t,el){
   if(t==='records') loadMyRecords();
   if(t==='calendar') renderCalendar();
   if(t==='salary') loadSalary();
+  if(t==='senior-cal') renderSeniorCalendar();
 }
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
 
@@ -700,6 +775,75 @@ function renderCalendar(){
 }
 function recordMonthPrev(){ recordMonth--; if(recordMonth<0){recordMonth=11;recordYear--;} loadMyRecords(); }
 function recordMonthNext(){ recordMonth++; if(recordMonth>11){recordMonth=0;recordYear++;} loadMyRecords(); }
+function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCalendar(); }
+function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCalendar(); }
+
+async function renderSeniorCalendar(){
+  const grid=document.getElementById('senior-cal-grid');
+  const label=document.getElementById('senior-cal-label');
+  if(!grid||!label) return;
+  const rocYear=seniorCalYear-1911;
+  label.textContent=rocYear+'年'+String(seniorCalMonth+1).padStart(2,'0')+'月';
+  grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">🔄 載入中...</div>';
+  try {
+    const result=await apiCall({action:'getAllRecords',password:'poya2026'});
+    if(!result.success){grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">❌ 無法載入</div>';return;}
+    const prefix=String(seniorCalYear)+'-'+String(seniorCalMonth+1).padStart(2,'0');
+    const records=(result.records||[]).filter(r=>String(r.date||'').substring(0,7)===prefix);
+    const dayMap={};
+    records.forEach(r=>{
+      const ds=String(r.date||'').substring(0,10);
+      if(!dayMap[ds])dayMap[ds]=[];
+      dayMap[ds].push(r);
+    });
+    const firstDay=new Date(seniorCalYear,seniorCalMonth,1).getDay();
+    const dim=new Date(seniorCalYear,seniorCalMonth+1,0).getDate();
+    const today=new Date().toISOString().split('T')[0];
+    let html=['日','一','二','三','四','五','六'].map(d=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--sub);padding:4px 0">${d}</div>`).join('');
+    for(let i=0;i<firstDay;i++) html+=`<div></div>`;
+    for(let d=1;d<=dim;d++){
+      const ds=seniorCalYear+'-'+String(seniorCalMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      const recs=dayMap[ds]||[];
+      const isSun=new Date(seniorCalYear,seniorCalMonth,d).getDay()===0;
+      const tripCount=recs.reduce((s,r)=>{let c=0;for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])c++;}if(r.factory&&r.factory!=='無')c++;return s+c;},0);
+      const names=[...new Set(recs.map(r=>r.name))];
+      const bg=recs.length>0?'background:var(--pink-ll);border-color:var(--pink)':'';
+      const isToday=ds===today?'border:2px solid var(--pink)!important':'';
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;padding:3px;min-height:52px;${bg}${isSun?'background:#fff0f0':''};cursor:${recs.length>0?'pointer':'default'}" onclick="${recs.length>0?`showSeniorDayDetail('${ds}')`:''}" >
+        <div style="font-size:11px;font-weight:600;color:${isSun?'#e74c3c':'var(--text)'}">${d}</div>
+        ${recs.length>0?`<div style="font-size:9px;color:var(--pink);font-weight:700">${tripCount}趟</div><div style="font-size:8px;color:var(--sub)">${names.slice(0,2).map(n=>n[0]).join('・')}${names.length>2?'..':''}</div>`:''}
+      </div>`;
+    }
+    grid.innerHTML=html;
+    window._seniorDayMap=dayMap;
+  } catch(e){ grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">❌ 連線失敗</div>'; }
+}
+
+function showSeniorDayDetail(ds){
+  const recs=(window._seniorDayMap||{})[ds]||[];
+  if(!recs.length) return;
+  const m=ds.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dateLabel=m?parseInt(m[2])+'/'+parseInt(m[3]):ds;
+  let html=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">📅 ${dateLabel} 出勤（${recs.length}人）</div>`;
+  recs.forEach(r=>{
+    const routes=[];
+    for(let n=1;n<=ROUTE_COUNT;n++) if(r['r'+n]) routes.push((r['a'+n]||r['r'+n])+(r['t'+n]?'['+r['t'+n]+']':''));
+    html+=`<div style="background:var(--pink-ll);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;color:var(--pink);margin-bottom:4px">👤 ${r.name}</div>
+      ${routes.map((rt,i)=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--sub)">趟次${i+1}</span><span style="font-weight:600">${rt}</span></div>`).join('')}
+      ${r.factory&&r.factory!=='無'?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--sub)">廠提</span><span style="font-weight:600">${r.factory}</span></div>`:''}
+      ${r.transfer?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--sub)">轉倉</span><span style="font-weight:600">${r.transfer}次</span></div>`:''}
+    </div>`;
+  });
+  // 用簡單 alert 或 modal 顯示
+  const modal=document.getElementById('modal');
+  if(modal){
+    document.getElementById('modal-title-text').textContent='全員出勤狀況';
+    document.getElementById('modal-body').innerHTML=html;
+    modal.style.display='flex';
+  } else { alert(recs.map(r=>r.name).join('、')+' 有出勤'); }
+}
+
 function salaryMonthPrev(){ salaryMonth--; if(salaryMonth<0){salaryMonth=11;salaryYear--;} loadSalary(); }
 function salaryMonthNext(){ salaryMonth++; if(salaryMonth>11){salaryMonth=0;salaryYear++;} loadSalary(); }
 
@@ -771,9 +915,11 @@ function loadSalary(){
   document.getElementById('salary-content').innerHTML=`
     <!-- 預估薪資 -->
     <div class="card" style="text-align:center;margin-bottom:12px;background:linear-gradient(135deg,var(--pink),var(--pink-d));border:none">
-      <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:6px;font-weight:600">本月預估薪資（含底薪）</div>
-      <div style="font-size:36px;font-weight:900;color:white">$${fmt$(salary+BASE_SALARY)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:6px;font-weight:600">本月預估實領薪資</div>
+      <div style="font-size:36px;font-weight:900;color:white">$${fmt$(salary+BASE_SALARY-healthInsurance-deductTotal)}</div>
       <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:4px">底薪 $${fmt$(BASE_SALARY)} ＋ 趟次 $${fmt$(salary)}</div>
+      ${healthInsurance>0?`<div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:2px">健保 -$${fmt$(healthInsurance)}</div>`:''}
+      ${deductTotal>0?`<div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:2px">扣款 -$${fmt$(deductTotal)}</div>`:''}
       <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px">${mStr}</div>
     </div>
 
@@ -1105,6 +1251,95 @@ async function saveEdit(){
   // 同步更新雲端
   if(upd.id && !upd.id.startsWith('local_')) {
     try { await apiCall({action:'update', ...upd}); } catch(e){}
+  }
+}
+
+// 幹部全員月曆
+let seniorCalYear = new Date().getFullYear();
+let seniorCalMonth = new Date().getMonth();
+
+function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCal(); }
+function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCal(); }
+
+async function renderSeniorCal(){
+  const grid=document.getElementById('senior-cal-grid');
+  const title=document.getElementById('senior-cal-title');
+  const rocYear=seniorCalYear-1911;
+  title.textContent=rocYear+'年'+(seniorCalMonth+1)+'月 全員出勤';
+  grid.innerHTML='<div style="grid-column:span 7;text-align:center;padding:20px;color:var(--sub)">🔄 載入中...</div>';
+  try {
+    const result=await apiCall({action:'getAllRecords', password:'poya2026'});
+    if(result.error){ grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:#e74c3c;padding:20px">❌ 無權限</div>'; return; }
+    if(result.records) result.records=result.records.map(r=>({...r,date:fixDateFormat(r.date,r.time)}));
+
+    const prefix=String(seniorCalYear)+'-'+String(seniorCalMonth+1).padStart(2,'0');
+    const records=result.records.filter(r=>String(r.date||'').substring(0,7)===prefix);
+
+    let totalTrips=0,totalTransfer=0;
+    records.forEach(r=>{
+      for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])totalTrips++;}
+      if(r.factory&&r.factory!=='無')totalTrips++;
+      totalTransfer+=parseInt(r.transfer||0);
+    });
+
+    document.getElementById('senior-cal-summary').innerHTML=`
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num" style="color:var(--pink)">${totalTrips}</div><div class="stat-lbl">本月總趟次</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--orange)">${totalTransfer}</div><div class="stat-lbl">轉倉</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${new Set(records.map(r=>r.name)).size}</div><div class="stat-lbl">出勤人數</div></div>
+      </div>`;
+
+    const firstDay=new Date(seniorCalYear,seniorCalMonth,1).getDay();
+    const dim=new Date(seniorCalYear,seniorCalMonth+1,0).getDate();
+    const today=new Date().toISOString().split('T')[0];
+    const dayMap={};
+    records.forEach(r=>{const ds=String(r.date||'').substring(0,10);if(!dayMap[ds])dayMap[ds]=[];dayMap[ds].push(r);});
+
+    grid.innerHTML=['日','一','二','三','四','五','六'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
+    for(let i=0;i<firstDay;i++) grid.innerHTML+=`<div class="cal-day empty-day"></div>`;
+    for(let d=1;d<=dim;d++){
+      const ds=seniorCalYear+'-'+String(seniorCalMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      const recs=dayMap[ds]||[];
+      const isSun=new Date(seniorCalYear,seniorCalMonth,d).getDay()===0;
+      const tripCount=recs.reduce((s,r)=>{let c=0;for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])c++;}if(r.factory&&r.factory!=='無')c++;return s+c;},0);
+      grid.innerHTML+=`<div class="cal-day${isSun?' sunday':''}${ds===today?' today':''}${recs.length>0?' has-record':''}" onclick="${recs.length>0?`showSeniorCalDetail('${ds}')`:''}" style="${recs.length===0?'cursor:default':''}">
+        <div class="cal-day-num">${d}</div>
+        ${recs.length>0?`<div class="cal-trip">${tripCount}趟 ${recs.length}人</div>`:''}
+      </div>`;
+    }
+    window._seniorDayMap=dayMap;
+  } catch(e) {
+    grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:#e74c3c;padding:20px">❌ 連線失敗</div>';
+  }
+}
+
+function showSeniorCalDetail(ds){
+  const recs=(window._seniorDayMap||{})[ds]||[];
+  if(!recs.length)return;
+  const m=ds.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  // 在 cal-detail 顯示
+  const detail=document.getElementById('senior-cal-detail');
+  const dateLabel=m?parseInt(m[2])+'/'+parseInt(m[3]):ds;
+  detail.innerHTML=`<div class="card"><div class="card-title">📅 ${dateLabel} 出勤狀況（${recs.length}人）</div>`+recs.map(r=>{
+    const routes=[];
+    for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])routes.push(r['r'+n]+(r['a'+n]?'('+r['a'+n]+')':'')+(r['t'+n]?'['+r['t'+n]+']':''));}
+    return `<div class="record-card" style="margin-bottom:8px">
+      <div class="record-date">👤 ${r.name}</div>
+      ${routes.map((rt,i)=>`<div class="record-row"><span class="lbl">趟次${i+1}</span><span class="val">${rt}</span></div>`).join('')}
+      ${r.factory&&r.factory!=='無'?`<div class="record-row"><span class="lbl">廠提</span><span class="val">${r.factory}</span></div>`:''}
+      ${r.transfer?`<div class="record-row"><span class="lbl">轉倉</span><span class="val">${r.transfer}次</span></div>`:''}
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// 覆寫 showTab 加入 senior-cal
+const _origShowTab = showTab;
+function showTab(t, el) {
+  _origShowTab(t, el);
+  if(t==='senior-cal') {
+    seniorCalYear=new Date().getFullYear();
+    seniorCalMonth=new Date().getMonth();
+    renderSeniorCal();
   }
 }
 </script>
