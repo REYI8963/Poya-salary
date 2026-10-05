@@ -418,9 +418,14 @@ async function syncFromCloud() {
     console.log('📡 API 回傳:', JSON.stringify(result).substring(0, 200));
     if (result.success) {
       console.log('✅ 取得', result.records.length, '筆資料');
-      console.log('📋 資料內容:', JSON.stringify(result.records).substring(0, 300));
-      localStorage.setItem(skey(currentUser), JSON.stringify(result.records));
-      showSyncStatus('✅ 已同步 ' + result.records.length + '筆');
+      // 修正日期格式：把英文日期轉成 YYYY-MM-DD
+      const fixed = result.records.map(r => ({
+        ...r,
+        date: fixDateFormat(r.date, r.time)
+      }));
+      console.log('📋 修正後資料:', JSON.stringify(fixed).substring(0, 300));
+      localStorage.setItem(skey(currentUser), JSON.stringify(fixed));
+      showSyncStatus('✅ 已同步 ' + fixed.length + '筆');
       setTimeout(() => showSyncStatus(''), 3000);
       loadMyRecords();
     } else {
@@ -542,6 +547,28 @@ function setEditFactory(area){
 }
 
 function fmt(r,c){ return r?r+(c?'（'+c+'間）':''):''; }
+// 修正英文日期格式 "Fri Sep 25" → "2026-09-25"
+function fixDateFormat(dateStr, timeStr) {
+  const s = String(dateStr || '');
+  // 已經是正確格式 YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // 英文格式如 "Fri Sep 25" 或 "Thu Oct 01"
+  const MONTHS = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+    Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+  const engMatch = s.match(/^[A-Za-z]+ ([A-Za-z]+) (\d+)$/);
+  if (engMatch) {
+    // 從提交時間取年份
+    const submitDate = timeStr ? new Date(timeStr) : new Date();
+    const y = submitDate.getFullYear();
+    const mo = MONTHS[engMatch[1]] || '01';
+    const d = String(parseInt(engMatch[2])).padStart(2, '0');
+    return y + '-' + mo + '-' + d;
+  }
+  // ISO 格式取前10碼
+  if (s.length >= 10) return s.substring(0, 10);
+  return s;
+}
+
 function parseRoute(str){
   if(!str) return {route:'',count:0};
   const m=str.match(/^(.+?)（(\d+)間）$/);
