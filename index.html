@@ -352,7 +352,7 @@
 
 <script>
 const USERS = {'李憶擇':'1116','梁世昌':'5888','劉哲維':'5566','陳勇德':'1122','王晴益':'0000'};
-const API_URL = 'https://script.google.com/macros/s/AKfycbzQ9pxJDIw9k9h4XD2UJpm3sRmUWPtAV_y_FlkxmRRUJGD6bjF46-0sP8hiOH7_U4DF/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbz6s-FJOYLDF9Ex5YO2iUEHY_O0IwwBxclKMUsSGwjcUDIUq61iLOS1M4rLuZh2dmCN/exec';
 
 async function apiCall(data) {
   try {
@@ -374,10 +374,29 @@ let calYear, calMonth;
 let recordYear, recordMonth;
 let salaryYear, salaryMonth;
 
-const SALARY_RATES = {
+let SALARY_RATES = {
   '台南': 1000, '嘉義': 1400, '雲林': 1600, '高雄': 1000,
   '廠提台南': 1000, '廠提台中': 2000, '轉倉': 300
 };
+let BASE_SALARY = 20000;
+
+async function syncRatesFromCloud() {
+  try {
+    const result = await apiCall({ action: 'getSettings', password: 'dummy' });
+    // getSettings 不需要密碼驗證也可取公開費率
+    if(result.settings) {
+      const s = result.settings;
+      if(s['rate_台南']) SALARY_RATES['台南'] = parseInt(s['rate_台南']);
+      if(s['rate_嘉義']) SALARY_RATES['嘉義'] = parseInt(s['rate_嘉義']);
+      if(s['rate_雲林']) SALARY_RATES['雲林'] = parseInt(s['rate_雲林']);
+      if(s['rate_高雄']) SALARY_RATES['高雄'] = parseInt(s['rate_高雄']);
+      if(s['rate_廠提台南']) SALARY_RATES['廠提台南'] = parseInt(s['rate_廠提台南']);
+      if(s['rate_廠提台中']) SALARY_RATES['廠提台中'] = parseInt(s['rate_廠提台中']);
+      if(s['rate_轉倉']) SALARY_RATES['轉倉'] = parseInt(s['rate_轉倉']);
+      BASE_SALARY = parseInt(s['base_salary_'+currentUser] || s['base_salary'] || 20000);
+    }
+  } catch(e) { console.log('費率同步失敗，使用預設值'); }
+}
 
 function skey(u){ return 'poya_records_'+u; }
 function getRecords(){ return JSON.parse(localStorage.getItem(skey(currentUser))||'[]'); }
@@ -542,6 +561,7 @@ function showApp(){
   buildRouteInputs('edit-routes-container','edit-',ROUTE_COUNT);
   loadMyRecords();
   syncFromCloud().then(() => { loadMyRecords(); renderCalendar && renderCalendar(); });
+  syncRatesFromCloud();
   const now2=new Date();
   salaryYear=now2.getFullYear(); salaryMonth=now2.getMonth();
   document.getElementById('salary-month-label').textContent=(salaryYear-1911)+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
@@ -712,9 +732,10 @@ function loadSalary(){
   document.getElementById('salary-content').innerHTML=`
     <!-- 預估薪資 -->
     <div class="card" style="text-align:center;margin-bottom:12px;background:linear-gradient(135deg,var(--pink),var(--pink-d));border:none">
-      <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:6px;font-weight:600">本月預估薪資</div>
-      <div style="font-size:36px;font-weight:900;color:white">$${fmt$(salary)}</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:4px">${mStr}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:6px;font-weight:600">本月預估薪資（含底薪）</div>
+      <div style="font-size:36px;font-weight:900;color:white">$${fmt$(salary+BASE_SALARY)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:4px">底薪 $${fmt$(BASE_SALARY)} ＋ 趟次 $${fmt$(salary)}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px">${mStr}</div>
     </div>
 
     <!-- 總趟數 -->
