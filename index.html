@@ -671,8 +671,9 @@ function loadSalary(){
 
   const all=getRecords();
   const mStart=new Date(salaryYear,salaryMonth,1);
-  const mEnd=new Date(salaryYear,salaryMonth+1,0,23,59,59);
-  const records=all.filter(r=>{const d=new Date(r.date);return d>=mStart&&d<=mEnd;});
+  // 用字串比對避免時區問題
+  const salaryPrefix=String(salaryYear)+'-'+String(salaryMonth+1).padStart(2,'0');
+  const records=all.filter(r=>String(r.date||'').substring(0,7)===salaryPrefix);
 
   // 計算各區域趟數
   const areaCounts={台南:0,嘉義:0,雲林:0,高雄:0};
@@ -827,7 +828,8 @@ function getExportRecords(){
     const pad=n=>String(n).padStart(2,'0');
     const startStr=y+'-'+pad(m)+'-01';
     const endStr=y+'-'+pad(m)+'-'+pad(new Date(y,m,0).getDate());
-    return{records:all.filter(r=>{const d=new Date(r.date);return d>=start&&d<=end;}).sort((a,b)=>a.date.localeCompare(b.date)),start,end,startStr,endStr,type};
+    const mPrefix=String(y)+'-'+String(m).padStart(2,'0');
+    return{records:all.filter(r=>String(r.date||'').substring(0,7)===mPrefix).sort((a,b)=>a.date.localeCompare(b.date)),start,end,startStr,endStr,type};
   }
 }
 function previewExport(){
@@ -962,8 +964,12 @@ function loadMyRecords(){
   const rawAll=getRecords(); // 原始順序（用於 index 操作）
   const all=rawAll.slice().reverse(); // 反序顯示用
   const y=recordYear, m=recordMonth;
-  const mStart=new Date(y,m,1), mEnd=new Date(y,m+1,0,23,59,59);
-  const thisMon=all.filter(r=>{const d=new Date(r.date);return d>=mStart&&d<=mEnd;});
+  // 用字串比對避免時區問題
+  const prefix=String(y)+'-'+String(m+1).padStart(2,'0');
+  const thisMon=all.filter(r=>{
+    const ds=String(r.date||'').substring(0,7); // 取 YYYY-MM
+    return ds===prefix;
+  });
   const mTransfer=thisMon.reduce((s,r)=>s+(parseInt(r.transfer)||0),0);
   const mTrips=thisMon.reduce((s,r)=>{let c=0;for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])c++;}if(r.factory&&r.factory!=='無')c++;return s+c;},0);
   const rocYear=y-1911;
