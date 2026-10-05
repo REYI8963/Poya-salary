@@ -276,6 +276,13 @@
       </div>
       <div class="cal-grid" id="senior-cal-grid"></div>
     </div>
+
+    <!-- 幹部帳號管理 -->
+    <div class="card" id="senior-account-section" style="display:none">
+      <div class="card-title">帳號管理</div>
+      <div id="senior-account-list"></div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="openSeniorAddModal()">➕ 新增運務士</button>
+    </div>
   </div>
 
   <!-- PDF匯出 -->
@@ -636,7 +643,17 @@ function parseRoute(str){
 }
 
 window.onload = ()=>{
-  if(currentUser) showApp(); else showLogin();
+  if(currentUser){
+    // 重新向雲端驗證角色是否有更新
+    const savedPw = sessionStorage.getItem('poya_pw') || '';
+    apiCall({action:'login', name:currentUser, pw:savedPw}).then(r=>{
+      if(r.success){
+        currentUserRole = r.role || 'driver';
+        sessionStorage.setItem('poya_role', currentUserRole);
+      }
+      showApp();
+    }).catch(()=>{ showApp(); });
+  } else { showLogin(); }
   const now=new Date();
   document.getElementById('date').value=now.toISOString().split('T')[0];
   document.getElementById('dl-month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
@@ -658,6 +675,9 @@ function showApp(){
   // 幹部顯示全員月曆 tab
   const seniorCalTab = document.getElementById('senior-cal-tab');
   if(seniorCalTab) seniorCalTab.style.display = isSenior() ? '' : 'none';
+  const seniorAccSection = document.getElementById('senior-account-section');
+  if(seniorAccSection) seniorAccSection.style.display = isSenior() ? 'block' : 'none';
+  if(isSenior()) loadSeniorAccounts();
   buildRouteInputs('routes-container','',ROUTE_COUNT);
   buildRouteInputs('edit-routes-container','edit-',ROUTE_COUNT);
   console.log('🚀 showApp 啟動，使用者:', currentUser);
@@ -806,6 +826,49 @@ function recordMonthPrev(){ recordMonth--; if(recordMonth<0){recordMonth=11;reco
 function recordMonthNext(){ recordMonth++; if(recordMonth>11){recordMonth=0;recordYear++;} loadMyRecords(); }
 function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCalendar(); }
 function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCalendar(); }
+
+// 幹部帳號管理
+async function loadSeniorAccounts(){
+  const list = document.getElementById('senior-account-list');
+  if(!list) return;
+  try {
+    const result = await apiCall({action:'getAccounts', password:'__public__'});
+    if(!result.success || !result.accounts.length){
+      list.innerHTML='<div style="color:#aaa;text-align:center;padding:16px">尚無帳號</div>';
+      return;
+    }
+    list.innerHTML = result.accounts.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--pink-l);color:var(--pink);font-weight:700;display:flex;align-items:center;justify-content:center">${a.name[0]}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700">${a.name}</div>
+            <div style="font-size:11px;color:var(--sub)">${a.role==='senior'?'幹部':'司機'}</div>
+          </div>
+        </div>
+        <button style="padding:6px 12px;border:none;border-radius:8px;background:#fde8e8;color:#e74c3c;font-size:12px;font-weight:700;cursor:pointer" onclick="seniorDeleteAccount('${a.name}')">🗑️ 刪除</button>
+      </div>`).join('');
+  } catch(e){ list.innerHTML='<div style="color:#aaa;text-align:center;padding:16px">載入失敗</div>'; }
+}
+
+function openSeniorAddModal(){
+  const name = prompt('請輸入新運務士姓名：');
+  if(!name || !name.trim()) return;
+  const pw = prompt('請輸入密碼（4~6碼）：');
+  if(!pw || pw.length < 4){ alert('密碼至少4碼'); return; }
+  apiCall({action:'saveAccount', password:'poya2026', oldName:null, name:name.trim(), pw, role:'driver'})
+    .then(r=>{ if(r.success){ toast('✅ 已新增 '+name); loadSeniorAccounts(); loadDriverList(); } else { toast('❌ '+r.error); } })
+    .catch(()=>toast('❌ 連線失敗'));
+}
+
+async function seniorDeleteAccount(name){
+  if(!confirm('確定刪除「'+name+'」？')) return;
+  try {
+    const result = await apiCall({action:'deleteAccount', password:'poya2026', name});
+    if(result.success){ toast('🗑️ 已刪除 '+name); loadSeniorAccounts(); loadDriverList(); }
+    else toast('❌ '+result.error);
+  } catch(e){ toast('❌ 連線失敗'); }
+}
 
 async function renderSeniorCalendar(){
   const grid=document.getElementById('senior-cal-grid');
@@ -1307,60 +1370,52 @@ async function saveEdit(){
 
 // 幹部全員月曆
 
-function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCal(); }
-function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCal(); }
+function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCalendar(); }
+function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCalendar(); }
 
-async function renderSeniorCal(){
-  const grid=document.getElementById('senior-cal-grid');
-  const title=document.getElementById('senior-cal-title');
-  const rocYear=seniorCalYear-1911;
-  title.textContent=rocYear+'年'+(seniorCalMonth+1)+'月 全員出勤';
-  grid.innerHTML='<div style="grid-column:span 7;text-align:center;padding:20px;color:var(--sub)">🔄 載入中...</div>';
+// 幹部帳號管理
+async function loadSeniorAccounts(){
+  const list = document.getElementById('senior-account-list');
+  if(!list) return;
   try {
-    const result=await apiCall({action:'getAllRecords', password:'poya2026'});
-    if(result.error){ grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:#e74c3c;padding:20px">❌ 無權限</div>'; return; }
-    if(result.records) result.records=result.records.map(r=>({...r,date:fixDateFormat(r.date,r.time)}));
-
-    const prefix=String(seniorCalYear)+'-'+String(seniorCalMonth+1).padStart(2,'0');
-    const records=result.records.filter(r=>String(r.date||'').substring(0,7)===prefix);
-
-    let totalTrips=0,totalTransfer=0;
-    records.forEach(r=>{
-      for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])totalTrips++;}
-      if(r.factory&&r.factory!=='無')totalTrips++;
-      totalTransfer+=parseInt(r.transfer||0);
-    });
-
-    document.getElementById('senior-cal-summary').innerHTML=`
-      <div class="stats-row">
-        <div class="stat-box"><div class="stat-num" style="color:var(--pink)">${totalTrips}</div><div class="stat-lbl">本月總趟次</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--orange)">${totalTransfer}</div><div class="stat-lbl">轉倉</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${new Set(records.map(r=>r.name)).size}</div><div class="stat-lbl">出勤人數</div></div>
-      </div>`;
-
-    const firstDay=new Date(seniorCalYear,seniorCalMonth,1).getDay();
-    const dim=new Date(seniorCalYear,seniorCalMonth+1,0).getDate();
-    const today=new Date().toISOString().split('T')[0];
-    const dayMap={};
-    records.forEach(r=>{const ds=String(r.date||'').substring(0,10);if(!dayMap[ds])dayMap[ds]=[];dayMap[ds].push(r);});
-
-    grid.innerHTML=['日','一','二','三','四','五','六'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
-    for(let i=0;i<firstDay;i++) grid.innerHTML+=`<div class="cal-day empty-day"></div>`;
-    for(let d=1;d<=dim;d++){
-      const ds=seniorCalYear+'-'+String(seniorCalMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-      const recs=dayMap[ds]||[];
-      const isSun=new Date(seniorCalYear,seniorCalMonth,d).getDay()===0;
-      const tripCount=recs.reduce((s,r)=>{let c=0;for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])c++;}if(r.factory&&r.factory!=='無')c++;return s+c;},0);
-      grid.innerHTML+=`<div class="cal-day${isSun?' sunday':''}${ds===today?' today':''}${recs.length>0?' has-record':''}" onclick="${recs.length>0?`showSeniorCalDetail('${ds}')`:''}" style="${recs.length===0?'cursor:default':''}">
-        <div class="cal-day-num">${d}</div>
-        ${recs.length>0?`<div class="cal-trip">${tripCount}趟 ${recs.length}人</div>`:''}
-      </div>`;
+    const result = await apiCall({action:'getAccounts', password:'__public__'});
+    if(!result.success || !result.accounts.length){
+      list.innerHTML='<div style="color:#aaa;text-align:center;padding:16px">尚無帳號</div>';
+      return;
     }
-    window._seniorDayMap=dayMap;
-  } catch(e) {
-    grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:#e74c3c;padding:20px">❌ 連線失敗</div>';
-  }
+    list.innerHTML = result.accounts.map(a=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--pink-l);color:var(--pink);font-weight:700;display:flex;align-items:center;justify-content:center">${a.name[0]}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700">${a.name}</div>
+            <div style="font-size:11px;color:var(--sub)">${a.role==='senior'?'幹部':'司機'}</div>
+          </div>
+        </div>
+        <button style="padding:6px 12px;border:none;border-radius:8px;background:#fde8e8;color:#e74c3c;font-size:12px;font-weight:700;cursor:pointer" onclick="seniorDeleteAccount('${a.name}')">🗑️ 刪除</button>
+      </div>`).join('');
+  } catch(e){ list.innerHTML='<div style="color:#aaa;text-align:center;padding:16px">載入失敗</div>'; }
 }
+
+function openSeniorAddModal(){
+  const name = prompt('請輸入新運務士姓名：');
+  if(!name || !name.trim()) return;
+  const pw = prompt('請輸入密碼（4~6碼）：');
+  if(!pw || pw.length < 4){ alert('密碼至少4碼'); return; }
+  apiCall({action:'saveAccount', password:'poya2026', oldName:null, name:name.trim(), pw, role:'driver'})
+    .then(r=>{ if(r.success){ toast('✅ 已新增 '+name); loadSeniorAccounts(); loadDriverList(); } else { toast('❌ '+r.error); } })
+    .catch(()=>toast('❌ 連線失敗'));
+}
+
+async function seniorDeleteAccount(name){
+  if(!confirm('確定刪除「'+name+'」？')) return;
+  try {
+    const result = await apiCall({action:'deleteAccount', password:'poya2026', name});
+    if(result.success){ toast('🗑️ 已刪除 '+name); loadSeniorAccounts(); loadDriverList(); }
+    else toast('❌ '+result.error);
+  } catch(e){ toast('❌ 連線失敗'); }
+}
+
 
 function showSeniorCalDetail(ds){
   const recs=(window._seniorDayMap||{})[ds]||[];
