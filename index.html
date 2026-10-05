@@ -167,7 +167,9 @@
   <header>
     <div><div class="header-brand">POYA 寶雅</div><span class="header-sub">運務出勤系統</span></div>
     <div class="header-right">
+      <span id="sync-status" style="font-size:10px;color:rgba(255,255,255,0.8);margin-right:4px"></span>
       <div class="user-badge" id="user-badge"></div>
+      <button class="btn-logout" onclick="syncFromCloud()" style="background:rgba(255,255,255,0.15);border:none;color:rgba(255,255,255,0.85);font-size:11px;padding:5px 8px;border-radius:8px;cursor:pointer;margin-right:4px">🔄</button>
       <button class="btn-logout" onclick="doLogout()">登出</button>
     </div>
   </header>
@@ -350,6 +352,20 @@
 
 <script>
 const USERS = {'李憶擇':'1116','梁世昌':'5888','劉哲維':'5566','陳勇德':'1122','王晴益':'0000'};
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQ9pxJDIw9k9h4XD2UJpm3sRmUWPtAV_y_FlkxmRRUJGD6bjF46-0sP8hiOH7_U4DF/exec';
+
+async function apiCall(data) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    return await res.json();
+  } catch(err) {
+    console.error('API Error:', err);
+    return { error: err.toString() };
+  }
+}
 const AREAS = ['雲林','嘉義','台南','高雄'];
 const ROUTE_COLORS = ['#e8317a','#f47920','#3aaa35','#9b59b6','#1a73e8','#e67e22'];
 const ROUTE_COUNT = 6;
@@ -366,11 +382,35 @@ const SALARY_RATES = {
 function skey(u){ return 'poya_records_'+u; }
 function getRecords(){ return JSON.parse(localStorage.getItem(skey(currentUser))||'[]'); }
 function saveRecords(r){
-  // 只保留最近6個月的資料
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - 6);
   const filtered = r.filter(rec => new Date(rec.date) >= cutoff);
   localStorage.setItem(skey(currentUser), JSON.stringify(filtered));
+}
+
+// 從 Google Sheets 同步資料到本地
+async function syncFromCloud() {
+  try {
+    showSyncStatus('🔄 同步中...');
+    const result = await apiCall({ action: 'getMyRecords', name: currentUser });
+    if (result.success) {
+      localStorage.setItem(skey(currentUser), JSON.stringify(result.records));
+      showSyncStatus('✅ 已同步');
+      setTimeout(() => showSyncStatus(''), 2000);
+    } else {
+      showSyncStatus('⚠️ 使用本地資料');
+      setTimeout(() => showSyncStatus(''), 3000);
+    }
+  } catch(e) {
+    showSyncStatus('⚠️ 離線模式');
+    setTimeout(() => showSyncStatus(''), 3000);
+  }
+}
+
+function showSyncStatus(msg) {
+  let el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
 }
 
 // 建立趟次輸入欄位
@@ -501,6 +541,7 @@ function showApp(){
   buildRouteInputs('routes-container','',ROUTE_COUNT);
   buildRouteInputs('edit-routes-container','edit-',ROUTE_COUNT);
   loadMyRecords();
+  syncFromCloud().then(() => { loadMyRecords(); renderCalendar && renderCalendar(); });
   const now2=new Date();
   salaryYear=now2.getFullYear(); salaryMonth=now2.getMonth();
   document.getElementById('salary-month-label').textContent=(salaryYear-1911)+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
@@ -523,7 +564,7 @@ function showTab(t,el){
 }
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
 
-function submitForm(){
+async function submitForm(){
   const date=document.getElementById('date').value;
   const r1=document.getElementById('r1').value.trim();
   const factory=document.getElementById('factory-area').value;
@@ -539,22 +580,41 @@ function submitForm(){
     data['c'+n]=count;  // 間數
     data['t'+n]=document.getElementById('t'+n).value; // 噸數
   }
-  const records=getRecords(); records.push(data); saveRecords(records);
   const btn=document.getElementById('submit-btn');
   btn.textContent='送出中...'; btn.disabled=true;
-  setTimeout(()=>{
+
+  // 先存本地
+  const records=getRecords();
+  const localData = {...data, id: 'local_' + Date.now()};
+  records.push(localData); saveRecords(records);
+
+  // 再送雲端
+  try {
+    const result = await apiCall({action:'submit', ...data});
+    if (result.success) {
+      // 用雲端 ID 更新本地紀錄
+      const recs = getRecords();
+      const idx = recs.findIndex(r => r.id === localData.id);
+      if (idx !== -1) { recs[idx].id = result.id; saveRecords(recs); }
+      btn.textContent='✅ 送出紀錄'; btn.disabled=false;
+      const b=document.getElementById('success-banner'); b.style.display='flex'; setTimeout(()=>b.style.display='none',3000);
+    } else {
+      toast('⚠️ 已存本地，雲端同步失敗');
+      btn.textContent='✅ 送出紀錄'; btn.disabled=false;
+    }
+  } catch(e) {
+    toast('⚠️ 已存本地，離線模式');
     btn.textContent='✅ 送出紀錄'; btn.disabled=false;
-    const b=document.getElementById('success-banner'); b.style.display='flex'; setTimeout(()=>b.style.display='none',3000);
-    for(let n=1;n<=ROUTE_COUNT;n++){document.getElementById('r'+n).value='';document.getElementById('c'+n).value='';document.getElementById('p'+n).textContent='';document.getElementById('t'+n).value='';document.querySelectorAll(`#area${n} .chip`).forEach(b=>b.classList.remove('on'));document.querySelectorAll(`#ton${n} .chip`).forEach(b=>b.classList.remove('on'));}
-    // 清 preview 標籤
-    document.getElementById('transfer').value='';
-    document.getElementById('factory-area').value='';
-    document.getElementById('factory-count').value='';
-    document.getElementById('factory-ton').value='';
-    document.getElementById('factory-preview').textContent='';
-    document.querySelectorAll('#factory-chips .chip').forEach(b=>b.classList.remove('on'));
-    document.querySelectorAll('#factory-ton-chips .chip').forEach(b=>b.classList.remove('on'));
-  },500);
+  }
+
+  for(let n=1;n<=ROUTE_COUNT;n++){document.getElementById('r'+n).value='';document.getElementById('c'+n).value='';document.getElementById('p'+n).textContent='';document.getElementById('t'+n).value='';document.querySelectorAll(`#area${n} .chip`).forEach(b=>b.classList.remove('on'));document.querySelectorAll(`#ton${n} .chip`).forEach(b=>b.classList.remove('on'));}
+  document.getElementById('transfer').value='';
+  document.getElementById('factory-area').value='';
+  document.getElementById('factory-count').value='';
+  document.getElementById('factory-ton').value='';
+  document.getElementById('factory-preview').textContent='';
+  document.querySelectorAll('#factory-chips .chip').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('#factory-ton-chips .chip').forEach(b=>b.classList.remove('on'));
 }
 
 // 月曆
@@ -922,10 +982,16 @@ function loadMyRecords(){
   }).join('');
 }
 
-function deleteRecord(idx){
+async function deleteRecord(idx){
   if(!confirm('確定要刪除這筆紀錄嗎？'))return;
-  const records=getRecords(); records.splice(idx,1); saveRecords(records);
+  const records=getRecords();
+  const rec = records[idx];
+  records.splice(idx,1); saveRecords(records);
   toast('🗑️ 已刪除'); loadMyRecords();
+  // 同步刪除雲端
+  if(rec && rec.id && !rec.id.startsWith('local_')) {
+    try { await apiCall({action:'delete', id:rec.id, name:currentUser}); } catch(e){}
+  }
 }
 function openEdit(idx){
   const r=getRecords()[idx];
@@ -953,7 +1019,7 @@ function openEdit(idx){
   document.getElementById('edit-modal').classList.add('show');
 }
 function closeModal(){ document.getElementById('edit-modal').classList.remove('show'); }
-function saveEdit(){
+async function saveEdit(){
   const idx=parseInt(document.getElementById('edit-idx').value);
   const records=getRecords();
   const upd={...records[idx],date:document.getElementById('edit-date').value,plate:document.getElementById('edit-plate').value.trim(),transfer:document.getElementById('edit-transfer').value,factory:document.getElementById('edit-factory-area').value,factoryCount:document.getElementById('edit-factory-count').value,factoryTon:document.getElementById('edit-factory-ton').value};
@@ -967,6 +1033,10 @@ function saveEdit(){
     upd['t'+n]=document.getElementById('edit-t'+n).value;
   }
   records[idx]=upd; saveRecords(records); closeModal(); toast('✅ 修改已儲存'); loadMyRecords();
+  // 同步更新雲端
+  if(upd.id && !upd.id.startsWith('local_')) {
+    try { await apiCall({action:'update', ...upd}); } catch(e){}
+  }
 }
 </script>
 </body>

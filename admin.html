@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-TW" style="background:#f8f9fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POYA 寶雅 管理後台</title>
+<style>
+  :root { color-scheme: light; --pink:#e8317a; --pink-d:#c0185f; --pink-l:#fde8f1; --bg:#f8f9fa; --border:#e0e0e0; --text:#1a1a1a; --sub:#666; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,'Helvetica Neue',sans-serif; background:var(--bg); color:var(--text); }
+
+  /* LOGIN */
+  #login-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:linear-gradient(135deg,#1a1a2e,#16213e); }
+  .login-box { background:white; border-radius:20px; padding:36px 28px; width:100%; max-width:360px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+  .login-box h1 { font-size:20px; font-weight:800; color:var(--text); margin-bottom:4px; }
+  .login-box p { font-size:13px; color:var(--sub); margin-bottom:24px; }
+  .login-box input { width:100%; padding:13px 14px; border:2px solid var(--border); border-radius:10px; font-size:16px; margin-bottom:12px; }
+  .login-box input:focus { outline:none; border-color:var(--pink); }
+  .btn-admin-login { width:100%; padding:14px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; background:linear-gradient(135deg,var(--pink),var(--pink-d)); color:white; }
+  .login-error { color:var(--pink-d); font-size:13px; margin-top:10px; display:none; }
+
+  /* APP */
+  #app-screen { display:none; }
+  header { background:linear-gradient(135deg,#1a1a2e,#16213e); color:white; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+  .header-title { font-size:16px; font-weight:800; }
+  .header-sub { font-size:11px; opacity:0.6; display:block; }
+  .btn-logout-admin { background:rgba(255,255,255,0.15); border:none; color:white; font-size:12px; padding:6px 12px; border-radius:8px; cursor:pointer; }
+
+  .tabs { display:flex; background:white; border-bottom:2px solid var(--border); overflow-x:auto; }
+  .tab { flex:0 0 auto; padding:12px 16px; font-size:13px; color:var(--sub); cursor:pointer; border-bottom:3px solid transparent; font-weight:600; white-space:nowrap; margin-bottom:-2px; }
+  .tab.on { color:var(--pink); border-color:var(--pink); }
+
+  .page { display:none; padding:16px; max-width:900px; margin:0 auto; }
+  .page.on { display:block; }
+
+  .card { background:white; border-radius:14px; padding:18px; margin-bottom:14px; box-shadow:0 1px 6px rgba(0,0,0,0.07); border:1px solid var(--border); }
+  .card-title { font-size:12px; font-weight:700; color:var(--pink); text-transform:uppercase; letter-spacing:1px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--pink-l); }
+
+  .filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .filter-row select, .filter-row input { padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; background:white; }
+  .filter-row select:focus, .filter-row input:focus { outline:none; border-color:var(--pink); }
+  .btn-fetch { padding:9px 18px; background:var(--pink); color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+
+  /* 統計卡 */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px; }
+  .stat-card { background:white; border-radius:12px; padding:16px; text-align:center; border:1px solid var(--border); }
+  .stat-num { font-size:28px; font-weight:900; color:var(--pink); }
+  .stat-lbl { font-size:11px; color:var(--sub); margin-top:4px; font-weight:600; }
+
+  /* 司機薪資卡 */
+  .driver-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
+  .driver-card { background:white; border-radius:12px; padding:16px; border:1px solid var(--border); border-left:4px solid var(--pink); }
+  .driver-name { font-size:15px; font-weight:700; color:var(--text); margin-bottom:10px; }
+  .driver-salary { font-size:24px; font-weight:900; color:var(--pink); margin-bottom:10px; }
+  .driver-row { display:flex; justify-content:space-between; font-size:13px; padding:3px 0; border-bottom:1px solid #f0f0f0; }
+  .driver-row:last-child { border:none; }
+  .driver-row .lbl { color:var(--sub); font-size:12px; }
+  .driver-row .val { font-weight:600; color:var(--text); }
+
+  /* 紀錄表格 */
+  .records-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .records-table th { background:#f5f5f5; font-weight:600; padding:10px 8px; text-align:left; border-bottom:2px solid var(--border); font-size:12px; color:var(--sub); white-space:nowrap; }
+  .records-table td { padding:10px 8px; border-bottom:1px solid #f5f5f5; vertical-align:middle; }
+  .records-table tr:hover td { background:#fdf0f5; }
+  .name-badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; background:var(--pink-l); color:var(--pink); }
+  .table-wrap { overflow-x:auto; }
+
+  .empty { text-align:center; color:#bbb; padding:40px 20px; font-size:14px; }
+  .loading { text-align:center; color:var(--sub); padding:30px; font-size:14px; }
+  .toast { display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a1a1a; color:white; padding:10px 20px; border-radius:20px; font-size:13px; z-index:999; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>🏢 POYA 寶雅</h1>
+    <p>管理後台 — 僅限管理員使用</p>
+    <input type="password" id="admin-pw" placeholder="請輸入管理員密碼" maxlength="20">
+    <button class="btn-admin-login" onclick="adminLogin()">進入後台 →</button>
+    <div class="login-error" id="login-error">❌ 密碼錯誤</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <header>
+    <div>
+      <div class="header-title">POYA 寶雅 管理後台</div>
+      <span class="header-sub">運務管理系統</span>
+    </div>
+    <button class="btn-logout-admin" onclick="adminLogout()">登出</button>
+  </header>
+
+  <div class="tabs">
+    <div class="tab on" onclick="showTab('summary',this)">💰 薪資總覽</div>
+    <div class="tab" onclick="showTab('records',this)">📋 出勤紀錄</div>
+  </div>
+
+  <!-- 薪資總覽 -->
+  <div class="page on" id="page-summary">
+    <div class="card">
+      <div class="card-title">篩選條件</div>
+      <div class="filter-row">
+        <select id="sum-year">
+          <option value="2026">115年(2026)</option>
+          <option value="2027">116年(2027)</option>
+        </select>
+        <select id="sum-month">
+          <option value="1">1月</option><option value="2">2月</option>
+          <option value="3">3月</option><option value="4">4月</option>
+          <option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option>
+          <option value="9">9月</option><option value="10">10月</option>
+          <option value="11">11月</option><option value="12">12月</option>
+        </select>
+        <button class="btn-fetch" onclick="loadSummary()">🔍 查詢</button>
+      </div>
+    </div>
+    <div id="summary-content"><div class="empty">請選擇月份後按查詢</div></div>
+  </div>
+
+  <!-- 出勤紀錄 -->
+  <div class="page" id="page-records">
+    <div class="card">
+      <div class="card-title">篩選條件</div>
+      <div class="filter-row">
+        <select id="rec-year">
+          <option value="2026">115年(2026)</option>
+          <option value="2027">116年(2027)</option>
+        </select>
+        <select id="rec-month">
+          <option value="1">1月</option><option value="2">2月</option>
+          <option value="3">3月</option><option value="4">4月</option>
+          <option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option>
+          <option value="9">9月</option><option value="10">10月</option>
+          <option value="11">11月</option><option value="12">12月</option>
+        </select>
+        <select id="rec-driver">
+          <option value="">所有司機</option>
+          <option>李憶擇</option><option>梁世昌</option>
+          <option>劉哲維</option><option>陳勇德</option><option>王晴益</option>
+        </select>
+        <button class="btn-fetch" onclick="loadRecords()">🔍 查詢</button>
+      </div>
+    </div>
+    <div id="records-content"><div class="empty">請選擇條件後按查詢</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQ9pxJDIw9k9h4XD2UJpm3sRmUWPtAV_y_FlkxmRRUJGD6bjF46-0sP8hiOH7_U4DF/exec';
+const ADMIN_PASSWORD = 'poya2026';
+const RATES = {'台南':1000,'嘉義':1400,'雲林':1600,'高雄':1000,'廠提台南':1000,'廠提台中':2000,'轉倉':300};
+
+let adminPw = '';
+
+window.onload = () => {
+  const now = new Date();
+  document.getElementById('sum-month').value = now.getMonth()+1;
+  document.getElementById('rec-month').value = now.getMonth()+1;
+  document.getElementById('admin-pw').addEventListener('keydown', e => { if(e.key==='Enter') adminLogin(); });
+};
+
+function adminLogin() {
+  const pw = document.getElementById('admin-pw').value;
+  if(pw !== ADMIN_PASSWORD) {
+    document.getElementById('login-error').style.display = 'block';
+    return;
+  }
+  adminPw = pw;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+}
+function adminLogout() {
+  adminPw = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('admin-pw').value = '';
+}
+
+function showTab(t, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('on'));
+  document.getElementById('page-'+t).classList.add('on');
+  el.classList.add('on');
+}
+
+function toast(msg) {
+  const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block';
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+async function apiCall(data) {
+  const res = await fetch(API_URL, { method:'POST', body:JSON.stringify(data) });
+  return await res.json();
+}
+
+function fmt$(n) { return '$'+n.toLocaleString('zh-TW'); }
+
+async function loadSummary() {
+  const year = document.getElementById('sum-year').value;
+  const month = document.getElementById('sum-month').value;
+  const content = document.getElementById('summary-content');
+  content.innerHTML = '<div class="loading">🔄 載入中...</div>';
+
+  try {
+    const result = await apiCall({ action:'getSummary', password:adminPw, year:parseInt(year), month:parseInt(month) });
+    if(result.error) { content.innerHTML = `<div class="empty">❌ ${result.error}</div>`; return; }
+
+    const summary = result.summary;
+    if(!summary.length) { content.innerHTML = '<div class="empty">本月尚無資料</div>'; return; }
+
+    const totalSalary = summary.reduce((s,d)=>s+d.salary,0);
+    const totalTrips = summary.reduce((s,d)=>s+d.trips,0);
+
+    const rocYear = parseInt(year)-1911;
+    content.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num">${fmt$(totalSalary)}</div><div class="stat-lbl">本月總薪資</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:#f47920">${totalTrips}</div><div class="stat-lbl">本月總趟數</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:#3aaa35">${summary.length}</div><div class="stat-lbl">出勤人數</div></div>
+      </div>
+      <div class="card"><div class="card-title">${rocYear}年${month}月 各司機薪資明細</div>
+        <div class="driver-grid">
+          ${summary.map(d=>`
+            <div class="driver-card">
+              <div class="driver-name">👤 ${d.name}</div>
+              <div class="driver-salary">${fmt$(d.salary)}</div>
+              <div class="driver-row"><span class="lbl">總趟數</span><span class="val">${d.trips} 趟</span></div>
+              ${Object.entries(d.areas).filter(([k,v])=>v>0).map(([k,v])=>`
+                <div class="driver-row"><span class="lbl">${k}路線</span><span class="val">${v}趟 × ${fmt$(RATES[k])}</span></div>`).join('')}
+              ${Object.entries(d.factory).filter(([k,v])=>v>0).map(([k,v])=>`
+                <div class="driver-row"><span class="lbl">廠提${k}</span><span class="val">${v}趟 × ${fmt$(RATES['廠提'+k])}</span></div>`).join('')}
+              ${d.transfer>0?`<div class="driver-row"><span class="lbl">轉倉</span><span class="val">${d.transfer}次 × ${fmt$(RATES['轉倉'])}</span></div>`:''}
+            </div>`).join('')}
+        </div>
+      </div>`;
+  } catch(e) {
+    content.innerHTML = '<div class="empty">❌ 連線失敗，請重試</div>';
+  }
+}
+
+async function loadRecords() {
+  const year = document.getElementById('rec-year').value;
+  const month = document.getElementById('rec-month').value;
+  const driver = document.getElementById('rec-driver').value;
+  const content = document.getElementById('records-content');
+  content.innerHTML = '<div class="loading">🔄 載入中...</div>';
+
+  try {
+    const result = await apiCall({ action:'getAllRecords', password:adminPw });
+    if(result.error) { content.innerHTML = `<div class="empty">❌ ${result.error}</div>`; return; }
+
+    let records = result.records.filter(r => {
+      const d = new Date(r.date);
+      const matchYear = d.getFullYear() == year;
+      const matchMonth = (d.getMonth()+1) == month;
+      const matchDriver = !driver || r.name === driver;
+      return matchYear && matchMonth && matchDriver;
+    }).sort((a,b)=>b.date.localeCompare(a.date));
+
+    if(!records.length) { content.innerHTML = '<div class="empty">此條件無資料</div>'; return; }
+
+    const rocYear = parseInt(year)-1911;
+    content.innerHTML = `
+      <div class="card">
+        <div class="card-title">${rocYear}年${month}月 出勤紀錄（共${records.length}筆）</div>
+        <div class="table-wrap">
+          <table class="records-table">
+            <thead><tr>
+              <th>日期</th><th>司機</th>
+              <th>趟次1</th><th>趟次2</th><th>趟次3</th><th>趟次4</th><th>趟次5</th><th>趟次6</th>
+              <th>廠提</th><th>轉倉</th><th>車牌</th>
+            </tr></thead>
+            <tbody>
+              ${records.map(r=>`
+                <tr>
+                  <td>${r.date}</td>
+                  <td><span class="name-badge">${r.name}</span></td>
+                  ${[1,2,3,4,5,6].map(n=>`<td>${r['r'+n]?`${r['r'+n]}${r['a'+n]?'('+r['a'+n]+')':''}${r['c'+n]?r['c'+n]+'間':''}${r['t'+n]?'['+r['t'+n]+']':''}`:''}</td>`).join('')}
+                  <td>${r.factory?r.factory+(r.factoryCount?'('+r.factoryCount+'間)':'')+(r.factoryTon?'['+r.factoryTon+']':''):''}</td>
+                  <td>${r.transfer||''}</td>
+                  <td>${r.plate||''}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch(e) {
+    content.innerHTML = '<div class="empty">❌ 連線失敗，請重試</div>';
+  }
+}
+</script>
+</body>
+</html>
