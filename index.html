@@ -646,6 +646,8 @@ window.onload = ()=>{
   seniorCalYear=now.getFullYear(); seniorCalMonth=now.getMonth();
   updateTenPreview();
   document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  // 動態載入司機名單
+  loadDriverList();
 };
 
 function showLogin(){ document.getElementById('login-screen').style.display='flex'; document.getElementById('app-screen').style.display='none'; }
