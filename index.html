@@ -382,8 +382,7 @@ let BASE_SALARY = 20000;
 
 async function syncRatesFromCloud() {
   try {
-    const result = await apiCall({ action: 'getSettings', password: 'dummy' });
-    // getSettings 不需要密碼驗證也可取公開費率
+    const result = await apiCall({ action: 'getPublicSettings' });
     if(result.settings) {
       const s = result.settings;
       if(s['rate_台南']) SALARY_RATES['台南'] = parseInt(s['rate_台南']);
@@ -585,7 +584,7 @@ function showTab(t,el){
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
 
 async function submitForm(){
-  const date=document.getElementById('date').value;
+  const date=document.getElementById('date').value; // YYYY-MM-DD 格式
   const r1=document.getElementById('r1').value.trim();
   const factory=document.getElementById('factory-area').value;
   if(!date){toast('⚠️ 請選擇日期');return;}

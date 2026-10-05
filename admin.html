@@ -342,9 +342,19 @@ function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 function fmt$(n){ return '$'+Number(n).toLocaleString(); }
 function fmtDate(dateStr){
   const s=String(dateStr||'');
+  // 處理 ISO 格式: 2026-09-30T16:00:00.000Z → 2026-09-30
   const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if(m) return parseInt(m[2])+'/'+parseInt(m[3]);
+  // 處理 Date 物件
+  if(dateStr instanceof Date) return (dateStr.getMonth()+1)+'/'+dateStr.getDate();
   return s;
+}
+
+// 取日期純字串 YYYY-MM-DD（去掉時區）
+function cleanDate(dateStr){
+  const s=String(dateStr||'');
+  const m=s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m?m[1]:s;
 }
 
 async function apiCall(data){
@@ -432,6 +442,7 @@ async function loadSalary(){
   document.getElementById('salary-stats').innerHTML='';
   try{
     const result=await apiCall({action:'getSummary',password:adminPw,year:salaryYear,month:salaryMonth+1});
+    console.log('getSummary result:', result);
     if(result.error){ document.getElementById('salary-content').innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
     summaryCache=result.summary;
     currentSettings=result.settings||{};
@@ -513,7 +524,10 @@ async function renderCalendar(){
     if(result.error){ grid.innerHTML='<div class="empty" style="grid-column:span 7">❌ '+result.error+'</div>'; return; }
 
     const prefix=String(calYear)+'-'+String(calMonth+1).padStart(2,'0');
-    const records=result.records.filter(r=>String(r.date||'').startsWith(prefix));
+    const records=result.records.filter(r=>{
+      const d=cleanDate(String(r.date||''));
+      return d.startsWith(prefix);
+    });
 
     // 月統計
     let totalTrips=0, totalTransfer=0, totalFactory=0;
@@ -544,7 +558,7 @@ async function renderCalendar(){
     // 整理每天的紀錄
     const dayMap={};
     records.forEach(r=>{
-      const ds=String(r.date||'');
+      const ds=cleanDate(String(r.date||''));
       if(!dayMap[ds]) dayMap[ds]=[];
       dayMap[ds].push(r);
     });
@@ -574,17 +588,46 @@ function showCalDetail(ds){
   const recs=(window._calDayMap||{})[ds]||[];
   if(!recs.length) return;
   const m=ds.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  document.getElementById('cal-detail-title').textContent='📅 '+(m?parseInt(m[2])+'/'+parseInt(m[3]):ds)+' 出勤狀況';
-  document.getElementById('cal-detail-content').innerHTML=recs.map(r=>{
+  const dateLabel=m?parseInt(m[2])+'/'+parseInt(m[3]):ds;
+  document.getElementById('cal-detail-title').textContent='📅 '+dateLabel+' 出勤狀況（'+recs.length+'人）';
+
+  // 當天統計
+  let dayTrips=0, dayTransfer=0, dayFactory=0;
+  const dayTons={'11噸':0,'6.5噸':0,'3.5噸':0};
+  recs.forEach(r=>{
+    for(let n=1;n<=ROUTE_COUNT;n++){
+      if(r['r'+n]){ dayTrips++; const t=(r['t'+n]||'').trim(); if(dayTons[t]!==undefined)dayTons[t]++; }
+    }
+    if(r.factory&&r.factory!=='無'){ dayFactory++; }
+    dayTransfer+=parseInt(r.transfer||0);
+  });
+
+  const statsHtml=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <div class="stat-box" style="flex:1"><div class="stat-num" style="font-size:20px;color:var(--pink)">${dayTrips}</div><div class="stat-lbl">趟次</div></div>
+    <div class="stat-box" style="flex:1"><div class="stat-num" style="font-size:20px;color:var(--orange)">${dayTransfer}</div><div class="stat-lbl">轉倉</div></div>
+    <div class="stat-box" style="flex:1"><div class="stat-num" style="font-size:20px;color:var(--green)">${dayFactory}</div><div class="stat-lbl">廠提</div></div>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    ${Object.entries(dayTons).map(([t,v])=>v>0?`<span style="background:var(--pink-l);color:var(--pink);border-radius:12px;padding:3px 10px;font-size:12px;font-weight:700">${t}: ${v}趟</span>`:'').join('')}
+  </div>`;
+
+  document.getElementById('cal-detail-content').innerHTML=statsHtml+recs.map(r=>{
     const routes=[];
-    for(let n=1;n<=ROUTE_COUNT;n++) if(r['r'+n]) routes.push(r['r'+n]+(r['a'+n]?'('+r['a'+n]+')':'')+(r['t'+n]?'['+r['t'+n]+']':''));
-    const fac=r.factory&&r.factory!=='無'?r.factory+(r.factoryTon?'['+r.factoryTon+']':''):'';
+    for(let n=1;n<=ROUTE_COUNT;n++){
+      if(r['r'+n]){
+        let rt=r['r'+n];
+        if(r['a'+n]) rt+='（'+r['a'+n]+'）';
+        if(r['c'+n]) rt+=' '+r['c'+n]+'間';
+        if(r['t'+n]) rt+=' ['+r['t'+n]+']';
+        routes.push(rt);
+      }
+    }
+    const fac=r.factory&&r.factory!=='無'?(r.factory+(r.factoryCount?'（'+r.factoryCount+'間）':'')+(r.factoryTon?'['+r.factoryTon+']':'')):'';
     return `<div class="detail-record">
-      <div class="detail-name">👤 ${r.name}</div>
+      <div class="detail-name">👤 ${r.name}${r.plate?' · '+r.plate:''}</div>
       ${routes.map((rt,i)=>`<div class="detail-row"><span class="lbl">趟次${i+1}</span><span class="val">${rt}</span></div>`).join('')}
       ${fac?`<div class="detail-row"><span class="lbl">廠提</span><span class="val">${fac}</span></div>`:''}
       ${r.transfer?`<div class="detail-row"><span class="lbl">轉倉</span><span class="val">${r.transfer}次</span></div>`:''}
-      ${r.plate?`<div class="detail-row"><span class="lbl">車牌</span><span class="val">${r.plate}</span></div>`:''}
     </div>`;
   }).join('');
   document.getElementById('cal-detail-modal').classList.add('show');
