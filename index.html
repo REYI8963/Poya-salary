@@ -141,7 +141,11 @@
   <div class="login-card">
     <h2>👤 登入您的帳號</h2>
     <p>請選擇姓名並輸入您的專屬密碼</p>
-    <input type="text" id="login-name" placeholder="請輸入姓名" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:12px;font-size:16px;background:var(--pink-ll);color:var(--text);-webkit-appearance:none;margin-bottom:8px">
+    <select id="login-name" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:12px;font-size:16px;background:var(--pink-ll);color:var(--text);-webkit-appearance:none;margin-bottom:8px">
+      <option value="">── 請選擇姓名 ──</option>
+      <option>李憶擇</option><option>梁世昌</option><option>劉哲維</option>
+      <option>陳勇德</option><option>王晴益</option>
+    </select>
     <input type="password" id="login-pw" placeholder="請輸入密碼" maxlength="6" style="letter-spacing:4px;font-size:20px">
     <button class="btn-login" onclick="doLogin()">進入系統 →</button>
     <div class="login-error" id="login-error"></div>
@@ -1330,16 +1334,7 @@ function showSeniorCalDetail(ds){
   }).join('')+'</div>';
 }
 
-// 覆寫 showTab 加入 senior-cal
-const _origShowTab = showTab;
-function showTab(t, el) {
-  _origShowTab(t, el);
-  if(t==='senior-cal') {
-    seniorCalYear=new Date().getFullYear();
-    seniorCalMonth=new Date().getMonth();
-    renderSeniorCal();
-  }
-}
+
 </script>
 </body>
 </html>
