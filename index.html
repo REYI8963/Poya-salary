@@ -142,9 +142,7 @@
     <h2>👤 登入您的帳號</h2>
     <p>請選擇姓名並輸入您的專屬密碼</p>
     <select id="login-name" style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:12px;font-size:16px;background:var(--pink-ll);color:var(--text);-webkit-appearance:none;margin-bottom:8px">
-      <option value="">── 請選擇姓名 ──</option>
-      <option>李憶擇</option><option>梁世昌</option><option>劉哲維</option>
-      <option>陳勇德</option><option>王晴益</option>
+      <option value="">── 載入中... ──</option>
     </select>
     <input type="password" id="login-pw" placeholder="請輸入密碼" maxlength="6" style="letter-spacing:4px;font-size:20px">
     <button class="btn-login" onclick="doLogin()">進入系統 →</button>
@@ -366,6 +364,27 @@
 
 
 <script>
+// 從 Sheets 動態載入司機名單到登入選單
+async function loadDriverList() {
+  const sel = document.getElementById('login-name');
+  if (!sel) return;
+  try {
+    const result = await apiCall({action:'getAccounts', password:'__public__'});
+    if (result.success && result.accounts && result.accounts.length > 0) {
+      sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
+        + result.accounts.map(a => `<option>${a.name}</option>`).join('');
+    } else {
+      // fallback：用預設名單
+      sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
+        + ['李憶擇','梁世昌','劉哲維','陳勇德','王晴益'].map(n=>`<option>${n}</option>`).join('');
+    }
+  } catch(e) {
+    // 離線 fallback
+    sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
+      + ['李憶擇','梁世昌','劉哲維','陳勇德','王晴益'].map(n=>`<option>${n}</option>`).join('');
+  }
+}
+
 // 帳號資料從 localStorage 讀取（由管理員後台管理）
 function getUsers() {
   const def = {'李憶擇':{pw:'1116',role:'driver'},'梁世昌':{pw:'5888',role:'driver'},'劉哲維':{pw:'5566',role:'driver'},'陳勇德':{pw:'1122',role:'driver'},'王晴益':{pw:'0000',role:'driver'}};
@@ -455,16 +474,20 @@ async function syncFromCloud() {
     console.log('📡 API 回傳:', JSON.stringify(result).substring(0, 200));
     if (result.success) {
       console.log('✅ 取得', result.records.length, '筆資料');
-      // 修正日期格式：把英文日期轉成 YYYY-MM-DD
-      const fixed = result.records.map(r => ({
-        ...r,
-        date: fixDateFormat(r.date, r.time)
-      }));
-      console.log('📋 修正後資料:', JSON.stringify(fixed).substring(0, 300));
+      const fixed = result.records.map(r => ({...r, date: fixDateFormat(r.date, r.time)}));
       localStorage.setItem(skey(currentUser), JSON.stringify(fixed));
       showSyncStatus('✅ 已同步 ' + fixed.length + '筆');
       setTimeout(() => showSyncStatus(''), 3000);
       loadMyRecords();
+      // 重新從 Sheets 取最新角色
+      apiCall({action:'login', name:currentUser, pw:sessionStorage.getItem('poya_pw')||''}).then(r=>{
+        if(r.success && r.role){
+          currentUserRole=r.role;
+          sessionStorage.setItem('poya_role',r.role);
+          const tab=document.getElementById('senior-cal-tab');
+          if(tab) tab.style.display=isSenior()?'':'none';
+        }
+      }).catch(()=>{});
     } else {
       console.error('❌ API 回傳錯誤:', result);
       showSyncStatus('⚠️ 使用本地資料');
@@ -664,6 +687,7 @@ function doLogin(){
       currentUserRole=result.role||'driver';
       sessionStorage.setItem('poya_user',result.name);
       sessionStorage.setItem('poya_role',result.role||'driver');
+      sessionStorage.setItem('poya_pw',pw);
       showApp();
     } else {
       err.textContent='❌ 密碼錯誤，請重新輸入';
@@ -851,16 +875,38 @@ function showSeniorDayDetail(ds){
 function salaryMonthPrev(){ salaryMonth--; if(salaryMonth<0){salaryMonth=11;salaryYear--;} loadSalary(); }
 function salaryMonthNext(){ salaryMonth++; if(salaryMonth>11){salaryMonth=0;salaryYear++;} loadSalary(); }
 
-function loadSalary(){
+async function loadSalary(){
   const rocYear=salaryYear-1911;
   const mStr=rocYear+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
   document.getElementById('salary-month-label').textContent=mStr;
 
   const all=getRecords();
-  const mStart=new Date(salaryYear,salaryMonth,1);
   // 用字串比對避免時區問題
   const salaryPrefix=String(salaryYear)+'-'+String(salaryMonth+1).padStart(2,'0');
   const records=all.filter(r=>String(r.date||'').substring(0,7)===salaryPrefix);
+
+  // 從雲端取扣款和健保設定
+  let deductions=[], healthInsurance=0;
+  try {
+    const [dRes, sRes] = await Promise.all([
+      apiCall({action:'getMyDeductions', name:currentUser, year:salaryYear, month:salaryMonth+1}),
+      apiCall({action:'getPublicSettings'})
+    ]);
+    if(dRes.success) deductions=dRes.deductions||[];
+    if(sRes.settings){
+      healthInsurance=parseInt(sRes.settings['health_'+currentUser]||0);
+      BASE_SALARY=parseInt(sRes.settings['base_salary_'+currentUser]||sRes.settings['base_salary']||20000);
+      const s=sRes.settings;
+      if(s['rate_台南']) SALARY_RATES['台南']=parseInt(s['rate_台南']);
+      if(s['rate_嘉義']) SALARY_RATES['嘉義']=parseInt(s['rate_嘉義']);
+      if(s['rate_雲林']) SALARY_RATES['雲林']=parseInt(s['rate_雲林']);
+      if(s['rate_高雄']) SALARY_RATES['高雄']=parseInt(s['rate_高雄']);
+      if(s['rate_廠提台南']) SALARY_RATES['廠提台南']=parseInt(s['rate_廠提台南']);
+      if(s['rate_廠提台中']) SALARY_RATES['廠提台中']=parseInt(s['rate_廠提台中']);
+      if(s['rate_轉倉']) SALARY_RATES['轉倉']=parseInt(s['rate_轉倉']);
+    }
+  } catch(e){ console.log('雲端同步失敗，使用本地資料'); }
+  const deductTotal=deductions.reduce((s,d)=>s+parseInt(d.amount||0),0);
 
   // 計算各區域趟數
   const areaCounts={台南:0,嘉義:0,雲林:0,高雄:0};
@@ -894,10 +940,6 @@ function loadSalary(){
   salary+=totalTransfer*SALARY_RATES['轉倉'];
 
   const fmt$=n=>n.toLocaleString('zh-TW');
-  // 扣款和健保暫時設為 0，待雲端同步後更新
-  const deductTotal=0;
-  const healthInsurance=0;
-  const deductions=[];
 
   const areaRows=Object.entries(areaCounts).map(([k,v])=>{
     if(v===0)return'';
