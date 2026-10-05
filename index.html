@@ -356,13 +356,16 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz6s-FJOYLDF9Ex5YO2iUEH
 
 async function apiCall(data) {
   try {
+    console.log('📤 API 呼叫:', data.action, data.name||'');
     const res = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify(data)
     });
-    return await res.json();
+    const json = await res.json();
+    console.log('📥 API 回應:', data.action, JSON.stringify(json).substring(0,150));
+    return json;
   } catch(err) {
-    console.error('API Error:', err);
+    console.error('❌ API Error:', err);
     return { error: err.toString() };
   }
 }
@@ -410,16 +413,23 @@ function saveRecords(r){
 async function syncFromCloud() {
   try {
     showSyncStatus('🔄 同步中...');
+    console.log('🔄 開始同步，使用者:', currentUser);
     const result = await apiCall({ action: 'getMyRecords', name: currentUser });
+    console.log('📡 API 回傳:', JSON.stringify(result).substring(0, 200));
     if (result.success) {
+      console.log('✅ 取得', result.records.length, '筆資料');
+      console.log('📋 資料內容:', JSON.stringify(result.records).substring(0, 300));
       localStorage.setItem(skey(currentUser), JSON.stringify(result.records));
-      showSyncStatus('✅ 已同步');
-      setTimeout(() => showSyncStatus(''), 2000);
+      showSyncStatus('✅ 已同步 ' + result.records.length + '筆');
+      setTimeout(() => showSyncStatus(''), 3000);
+      loadMyRecords();
     } else {
+      console.error('❌ API 回傳錯誤:', result);
       showSyncStatus('⚠️ 使用本地資料');
       setTimeout(() => showSyncStatus(''), 3000);
     }
   } catch(e) {
+    console.error('❌ 同步失敗:', e);
     showSyncStatus('⚠️ 離線模式');
     setTimeout(() => showSyncStatus(''), 3000);
   }
@@ -558,8 +568,10 @@ function showApp(){
   document.getElementById('user-badge').textContent=currentUser;
   buildRouteInputs('routes-container','',ROUTE_COUNT);
   buildRouteInputs('edit-routes-container','edit-',ROUTE_COUNT);
+  console.log('🚀 showApp 啟動，使用者:', currentUser);
+  console.log('📦 本地資料:', JSON.stringify(getRecords()).substring(0,200));
   loadMyRecords();
-  syncFromCloud().then(() => { loadMyRecords(); renderCalendar && renderCalendar(); });
+  syncFromCloud();
   syncRatesFromCloud();
   const now2=new Date();
   salaryYear=now2.getFullYear(); salaryMonth=now2.getMonth();
@@ -964,12 +976,16 @@ function loadMyRecords(){
   const rawAll=getRecords(); // 原始順序（用於 index 操作）
   const all=rawAll.slice().reverse(); // 反序顯示用
   const y=recordYear, m=recordMonth;
+  console.log('📊 loadMyRecords - 總資料:', rawAll.length, '筆, 篩選月份:', y+'/'+(m+1));
   // 用字串比對避免時區問題
   const prefix=String(y)+'-'+String(m+1).padStart(2,'0');
+  console.log('🔍 篩選 prefix:', prefix);
   const thisMon=all.filter(r=>{
-    const ds=String(r.date||'').substring(0,7); // 取 YYYY-MM
+    const ds=String(r.date||'').substring(0,7);
+    console.log('  資料日期:', r.date, '→', ds, ds===prefix?'✅':'❌');
     return ds===prefix;
   });
+  console.log('📋 本月資料:', thisMon.length, '筆');
   const mTransfer=thisMon.reduce((s,r)=>s+(parseInt(r.transfer)||0),0);
   const mTrips=thisMon.reduce((s,r)=>{let c=0;for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])c++;}if(r.factory&&r.factory!=='無')c++;return s+c;},0);
   const rocYear=y-1911;
