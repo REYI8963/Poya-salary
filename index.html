@@ -178,7 +178,6 @@
     <div class="tab" onclick="showTab('salary',this)">💰 本月薪資</div>
     <div class="tab" onclick="showTab('download',this)">⬇️ PDF匯出</div>
     <div class="tab" id="senior-cal-tab" style="display:none" onclick="showTab('senior-cal',this)">👥 全員月曆</div>
-    <div class="tab" id="senior-cal-tab" style="display:none" onclick="showTab('senior-cal',this)">👥 全員月曆</div>
   </div>
 
   <!-- 填報 -->
@@ -881,7 +880,9 @@ async function renderSeniorCalendar(){
     const result=await apiCall({action:'getAllRecords',password:'poya2026'});
     if(!result.success){grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">❌ 無法載入</div>';return;}
     const prefix=String(seniorCalYear)+'-'+String(seniorCalMonth+1).padStart(2,'0');
-    const records=(result.records||[]).filter(r=>String(r.date||'').substring(0,7)===prefix);
+    const records=(result.records||[])
+      .map(r=>({...r, date:fixDateFormat(r.date, r.time)}))
+      .filter(r=>String(r.date||'').substring(0,7)===prefix);
     const dayMap={};
     records.forEach(r=>{
       const ds=String(r.date||'').substring(0,10);
