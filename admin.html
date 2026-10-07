@@ -683,8 +683,8 @@ async function loadFreightSettings() {
       <tr>
         <td style="padding:8px;border:1px solid var(--border);font-weight:700;background:var(--pink-ll);text-align:center">${a}</td>
         <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-11" value="${s['freight_'+a+'_11噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||s['freight_'+a+'_6.5噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||s['freight_'+a+'_3.5噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_6.5噸']||s['freight_'+a+'_65噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_3.5噸']||s['freight_'+a+'_35噸']||0}"></td>
       </tr>`).join('');
 
     // 廠提費率表格
@@ -693,14 +693,14 @@ async function loadFreightSettings() {
       <tr>
         <td style="padding:8px;border:1px solid var(--border);font-weight:700;background:var(--pink-ll);text-align:center">${a}</td>
         <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-11" value="${s['freight_'+a+'_11噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||s['freight_'+a+'_6.5噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||s['freight_'+a+'_3.5噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_6.5噸']||s['freight_'+a+'_65噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_3.5噸']||s['freight_'+a+'_35噸']||0}"></td>
       </tr>`).join('');
 
     // 下點費
     document.getElementById('dropfee-11').value = s['dropfee_11噸']||0;
-    document.getElementById('dropfee-65').value = s['dropfee_65噸']||0;
-    document.getElementById('dropfee-35').value = s['dropfee_35噸']||0;
+    document.getElementById('dropfee-65').value = s['dropfee_6.5噸']||s['dropfee_65噸']||0;
+    document.getElementById('dropfee-35').value = s['dropfee_3.5噸']||s['dropfee_35噸']||0;
     document.getElementById('freight-transfer').value = s['freight_轉倉']||0;
   } catch(e){ toast('❌ 載入失敗'); }
 }
@@ -709,17 +709,17 @@ async function saveFreightSettings() {
   const newSettings = {};
   AREAS.forEach(a=>{
     newSettings['freight_'+a+'_11噸'] = document.getElementById('fr-'+a+'-11')?.value||0;
-    newSettings['freight_'+a+'_65噸'] = document.getElementById('fr-'+a+'-65')?.value||0;
-    newSettings['freight_'+a+'_35噸'] = document.getElementById('fr-'+a+'-35')?.value||0;
+    newSettings['freight_'+a+'_6.5噸'] = document.getElementById('fr-'+a+'-65')?.value||0;
+    newSettings['freight_'+a+'_3.5噸'] = document.getElementById('fr-'+a+'-35')?.value||0;
   });
   FACTORY_AREAS.forEach(a=>{
     newSettings['freight_'+a+'_11噸'] = document.getElementById('fr-'+a+'-11')?.value||0;
-    newSettings['freight_'+a+'_65噸'] = document.getElementById('fr-'+a+'-65')?.value||0;
-    newSettings['freight_'+a+'_35噸'] = document.getElementById('fr-'+a+'-35')?.value||0;
+    newSettings['freight_'+a+'_6.5噸'] = document.getElementById('fr-'+a+'-65')?.value||0;
+    newSettings['freight_'+a+'_3.5噸'] = document.getElementById('fr-'+a+'-35')?.value||0;
   });
   newSettings['dropfee_11噸'] = document.getElementById('dropfee-11')?.value||0;
-  newSettings['dropfee_65噸'] = document.getElementById('dropfee-65')?.value||0;
-  newSettings['dropfee_35噸'] = document.getElementById('dropfee-35')?.value||0;
+  newSettings['dropfee_6.5噸'] = document.getElementById('dropfee-65')?.value||0;
+  newSettings['dropfee_3.5噸'] = document.getElementById('dropfee-35')?.value||0;
   newSettings['freight_轉倉'] = document.getElementById('freight-transfer')?.value||0;
   try {
     const result = await apiCall({action:'saveFreightSettings', password:adminPw, settings:newSettings});
