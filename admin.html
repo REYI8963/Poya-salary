@@ -477,11 +477,17 @@ async function loadRevenue() {
     const mLabel = rocYear+'年'+(revenueMonth+1)+'月';
 
     // 總收益卡
-    document.getElementById('revenue-total-card').innerHTML=`
-      <div class="card" style="text-align:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border:none;margin-bottom:12px">
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600">${mLabel} 本月總運費收益</div>
-        <div style="font-size:38px;font-weight:900;color:white">${fmt$(s.total)}</div>
-      </div>`;
+    const totalCardEl = document.getElementById('revenue-total-card');
+    console.log('🎯 revenue-total-card 元素:', totalCardEl ? '存在' : '不存在！');
+    console.log('🎯 page-revenue display:', document.getElementById('page-revenue')?.style.display, document.getElementById('page-revenue')?.className);
+    if(totalCardEl) {
+      totalCardEl.innerHTML=`
+        <div class="card" style="text-align:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border:none;margin-bottom:12px">
+          <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600">${mLabel} 本月總運費收益</div>
+          <div style="font-size:38px;font-weight:900;color:white">${fmt$(s.total)}</div>
+        </div>`;
+      console.log('🎯 innerHTML 設定完成，內容長度:', totalCardEl.innerHTML.length);
+    }
 
     // 計算各地區收益（用於圓餅圖）
     const chartData = [];
