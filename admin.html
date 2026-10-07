@@ -676,14 +676,16 @@ async function adminLogin() {
 function buildTabs() {
   const tabs = document.getElementById('main-tabs');
   const allTabs = [
-    {id:'accounts', label:'👤 帳號管理'},
-    {id:'salary', label:'💰 薪資概況'},
-    {id:'calendar', label:'📅 出勤月曆'},
-    {id:'rates', label:'⚙️ 薪資設定'},
+    {id:'revenue', label:'\u{1F4CA} \u672C\u6708\u6536\u76CA'},
+    {id:'salary', label:'\u{1F4B0} \u85AA\u8CC7\u6982\u6CC1'},
+    {id:'calendar', label:'\u{1F4C5} \u51FA\u52E4\u6708\u66C6'},
+    {id:'freight', label:'\u{1F69B} \u904B\u8CBB\u8A2D\u5B9A'},
+    {id:'rates', label:'\u2699\uFE0F \u85AA\u8CC7\u8A2D\u5B9A'},
+    {id:'accounts', label:'\u{1F464} \u5E33\u865F\u7BA1\u7406'},
   ];
   tabs.innerHTML = allTabs.map((t,i)=>`<div class="tab ${i===0?'on':''}" onclick="showTab('${t.id}',this)">${t.label}</div>`).join('');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  document.getElementById('page-accounts').classList.add('on');
+  document.getElementById('page-revenue').classList.add('on');
 }
 
 function adminLogout() {
