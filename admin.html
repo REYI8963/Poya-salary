@@ -191,6 +191,66 @@
     </div>
   </div>
 
+  <!-- 本月收益 -->
+  <div class="page on" id="page-revenue">
+    <div class="card">
+      <div class="card-title">選擇月份</div>
+      <div class="month-nav">
+        <button class="nav-btn" onclick="revenueMonthPrev()">‹</button>
+        <div class="month-label" id="revenue-month-label"></div>
+        <button class="nav-btn" onclick="revenueMonthNext()">›</button>
+      </div>
+    </div>
+    <div id="revenue-total-card"></div>
+    <div id="revenue-chart-card"></div>
+    <div id="revenue-detail-cards"></div>
+  </div>
+
+  <!-- 運費設定 -->
+  <div class="page" id="page-freight">
+    <div class="card">
+      <div class="card-title">路線運費（每趟）</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">地區</th>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">11噸</th>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">6.5噸</th>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">3.5噸</th>
+          </tr></thead>
+          <tbody id="freight-rate-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">廠提運費（每趟）</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">地區</th>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">11噸</th>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">6.5噸</th>
+            <th style="padding:8px;background:var(--pink-l);border:1px solid var(--border);text-align:center">3.5噸</th>
+          </tr></thead>
+          <tbody id="factory-rate-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">下點費（第2間起，依噸數）</div>
+      <div class="rate-grid">
+        <div class="rate-item"><div class="rate-label">11噸 / 間</div><input class="rate-input" type="number" id="dropfee-11" placeholder="0"></div>
+        <div class="rate-item"><div class="rate-label">6.5噸 / 間</div><input class="rate-input" type="number" id="dropfee-65" placeholder="0"></div>
+        <div class="rate-item"><div class="rate-label">3.5噸 / 間</div><input class="rate-input" type="number" id="dropfee-35" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">轉倉運費（每趟固定）</div>
+      <div class="rate-item"><div class="rate-label">轉倉 / 趟</div><input class="rate-input" type="number" id="freight-transfer" placeholder="0"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveFreightSettings()">💾 儲存運費設定</button>
+  </div>
+
   <!-- 薪資概況 (僅管理員) -->
   <div class="page" id="page-salary">
     <div class="card">
@@ -331,6 +391,15 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbz6s-FJOYLDF9Ex5YO2iUEHY_O0IwwBxclKMUsSGwjcUDIUq61iLOS1M4rLuZh2dmCN/exec';
 const ROUTE_COUNT = 6;
 const RATE_LABELS = {'rate_台南':'台南路線','rate_嘉義':'嘉義路線','rate_雲林':'雲林路線','rate_高雄':'高雄路線','rate_廠提台南':'廠提台南','rate_廠提台中':'廠提台中','rate_轉倉':'轉倉'};
+const AREA_COLORS = {
+  '台南':'#4A90D9','嘉義':'#5CB85C','雲林':'#F47920','高雄':'#9B59B6',
+  '廠提台南':'#E8317A','廠提台中':'#E74C3C','轉倉':'#95A5A6'
+};
+const AREAS = ['台南','嘉義','雲林','高雄'];
+const TONS = ['11噸','6.5噸','3.5噸'];
+const FACTORY_AREAS = ['廠提台南','廠提台中'];
+let revenueYear, revenueMonth;
+let freightSettingsCache = null;
 
 let adminPw = localStorage.getItem('poya_admin_pw') || 'poya2026';
 
@@ -365,6 +434,7 @@ window.onload = () => {
   const now = new Date();
   salaryYear = now.getFullYear(); salaryMonth = now.getMonth();
   calYear = now.getFullYear(); calMonth = now.getMonth();
+  revenueYear = now.getFullYear(); revenueMonth = now.getMonth();
   updateLabels();
   const now2 = new Date();
   document.getElementById('deduct-month').value = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
@@ -375,9 +445,213 @@ window.onload = () => {
 function updateLabels() {
   const rS=(salaryYear-1911)+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
   const rC=(calYear-1911)+'年'+String(calMonth+1).padStart(2,'0')+'月';
+  const rR=(revenueYear-1911)+'年'+String(revenueMonth+1).padStart(2,'0')+'月';
   if(document.getElementById('salary-month-label')) document.getElementById('salary-month-label').textContent=rS;
   if(document.getElementById('cal-month-label')) document.getElementById('cal-month-label').textContent=rC;
+  if(document.getElementById('revenue-month-label')) document.getElementById('revenue-month-label').textContent=rR;
 }
+function revenueMonthPrev(){ revenueMonth--; if(revenueMonth<0){revenueMonth=11;revenueYear--;} updateLabels(); loadRevenue(); }
+function revenueMonthNext(){ revenueMonth++; if(revenueMonth>11){revenueMonth=0;revenueYear++;} updateLabels(); loadRevenue(); }
+
+async function loadRevenue() {
+  document.getElementById('revenue-total-card').innerHTML='<div class="loading">🔄 載入中...</div>';
+  document.getElementById('revenue-chart-card').innerHTML='';
+  document.getElementById('revenue-detail-cards').innerHTML='';
+  try {
+    const result = await apiCall({action:'getFreightSummary', password:adminPw, year:revenueYear, month:revenueMonth+1});
+    if(result.error){ document.getElementById('revenue-total-card').innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
+    const s = result.summary;
+    const rocYear = revenueYear-1911;
+    const mLabel = rocYear+'年'+(revenueMonth+1)+'月';
+
+    // 總收益卡
+    document.getElementById('revenue-total-card').innerHTML=`
+      <div class="card" style="text-align:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border:none;margin-bottom:12px">
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600">${mLabel} 本月總運費收益</div>
+        <div style="font-size:38px;font-weight:900;color:white">${fmt$(s.total)}</div>
+      </div>`;
+
+    // 計算各地區收益（用於圓餅圖）
+    const chartData = [];
+    const chartColors = [];
+    const chartLabels = [];
+    AREAS.forEach(a=>{
+      if(s.areas[a] && s.areas[a].revenue > 0){
+        chartLabels.push(a); chartData.push(s.areas[a].revenue); chartColors.push(AREA_COLORS[a]);
+      }
+    });
+    FACTORY_AREAS.forEach(a=>{
+      if(s.factory[a] && s.factory[a].revenue > 0){
+        chartLabels.push(a); chartData.push(s.factory[a].revenue); chartColors.push(AREA_COLORS[a]);
+      }
+    });
+    if(s.transfer.revenue > 0){
+      chartLabels.push('轉倉'); chartData.push(s.transfer.revenue); chartColors.push(AREA_COLORS['轉倉']);
+    }
+
+    // 圓餅圖
+    if(chartData.length > 0){
+      document.getElementById('revenue-chart-card').innerHTML=`
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-title">收入來源分佈</div>
+          <div style="position:relative;height:260px">
+            <canvas id="revenue-pie-chart"></canvas>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+            ${chartLabels.map((l,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:12px">
+              <div style="width:12px;height:12px;border-radius:50%;background:${chartColors[i]}"></div>
+              <span>${l}: ${fmt$(chartData[i])}</span>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      // 載入 Chart.js 並繪製
+      if(typeof Chart === 'undefined'){
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+        script.onload = ()=>drawPieChart(chartData, chartColors, chartLabels, s.total);
+        document.head.appendChild(script);
+      } else {
+        drawPieChart(chartData, chartColors, chartLabels, s.total);
+      }
+    }
+
+    // 明細卡片
+    let detailHtml = '';
+    AREAS.forEach(a=>{
+      if(!s.areas[a] || s.areas[a].revenue === 0) return;
+      const color = AREA_COLORS[a];
+      let rows = '';
+      TONS.forEach(t=>{
+        const d = s.details[a] && s.details[a][t];
+        if(!d || d.trips === 0) return;
+        rows += `<div class="driver-row">
+          <span class="lbl">${t} × ${d.trips}趟 / 共${d.totalCount}間</span>
+          <span class="val">運費${fmt$(d.freightRevenue)}${d.dropRevenue>0?' + 下點'+fmt$(d.dropRevenue):''} = <b style="color:${color}">${fmt$(d.revenue)}</b></span>
+        </div>`;
+      });
+      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px">
+        <div class="driver-header">
+          <div class="driver-name" style="color:${color}">📍 ${a}</div>
+          <div class="driver-salary" style="color:${color}">${fmt$(s.areas[a].revenue)}</div>
+        </div>
+        ${rows}
+      </div>`;
+    });
+    FACTORY_AREAS.forEach(a=>{
+      if(!s.factory[a] || s.factory[a].revenue === 0) return;
+      const color = AREA_COLORS[a];
+      let rows = '';
+      TONS.forEach(t=>{
+        const d = s.details[a] && s.details[a][t];
+        if(!d || d.trips === 0) return;
+        rows += `<div class="driver-row"><span class="lbl">${t} × ${d.trips}趟</span><span class="val"><b style="color:${color}">${fmt$(d.revenue)}</b></span></div>`;
+      });
+      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px">
+        <div class="driver-header">
+          <div class="driver-name" style="color:${color}">🏭 ${a}</div>
+          <div class="driver-salary" style="color:${color}">${fmt$(s.factory[a].revenue)}</div>
+        </div>${rows}
+      </div>`;
+    });
+    if(s.transfer.count > 0){
+      const color = AREA_COLORS['轉倉'];
+      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px">
+        <div class="driver-header">
+          <div class="driver-name" style="color:${color}">🔄 轉倉</div>
+          <div class="driver-salary" style="color:${color}">${fmt$(s.transfer.revenue)}</div>
+        </div>
+        <div class="driver-row"><span class="lbl">共 ${s.transfer.count} 次</span><span class="val"><b style="color:${color}">${fmt$(s.transfer.revenue)}</b></span></div>
+      </div>`;
+    }
+    document.getElementById('revenue-detail-cards').innerHTML = detailHtml || '<div class="empty">本月尚無資料</div>';
+  } catch(e) {
+    document.getElementById('revenue-total-card').innerHTML='<div class="empty">❌ 連線失敗</div>';
+  }
+}
+
+function drawPieChart(data, colors, labels, total) {
+  const ctx = document.getElementById('revenue-pie-chart');
+  if(!ctx) return;
+  if(ctx._chartInstance) ctx._chartInstance.destroy();
+  ctx._chartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const pct = Math.round(ctx.parsed / total * 100);
+              return ctx.label + ': $' + ctx.parsed.toLocaleString() + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// 運費設定
+async function loadFreightSettings() {
+  try {
+    const result = await apiCall({action:'getFreightSettings', password:adminPw});
+    if(result.error){ toast('❌ '+result.error); return; }
+    freightSettingsCache = result.settings;
+    const s = result.settings;
+
+    // 路線費率表格
+    const tbody = document.getElementById('freight-rate-body');
+    tbody.innerHTML = AREAS.map(a=>`
+      <tr>
+        <td style="padding:8px;border:1px solid var(--border);font-weight:700;background:var(--pink-ll);text-align:center">${a}</td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-11" value="${s['freight_'+a+'_11噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||0}"></td>
+      </tr>`).join('');
+
+    // 廠提費率表格
+    const fbody = document.getElementById('factory-rate-body');
+    fbody.innerHTML = FACTORY_AREAS.map(a=>`
+      <tr>
+        <td style="padding:8px;border:1px solid var(--border);font-weight:700;background:var(--pink-ll);text-align:center">${a}</td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-11" value="${s['freight_'+a+'_11噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||0}"></td>
+      </tr>`).join('');
+
+    // 下點費
+    document.getElementById('dropfee-11').value = s['dropfee_11噸']||0;
+    document.getElementById('dropfee-65').value = s['dropfee_65噸']||0;
+    document.getElementById('dropfee-35').value = s['dropfee_35噸']||0;
+    document.getElementById('freight-transfer').value = s['freight_轉倉']||0;
+  } catch(e){ toast('❌ 載入失敗'); }
+}
+
+async function saveFreightSettings() {
+  const newSettings = {};
+  AREAS.forEach(a=>{
+    newSettings['freight_'+a+'_11噸'] = document.getElementById('fr-'+a+'-11')?.value||0;
+    newSettings['freight_'+a+'_65噸'] = document.getElementById('fr-'+a+'-65')?.value||0;
+    newSettings['freight_'+a+'_35噸'] = document.getElementById('fr-'+a+'-35')?.value||0;
+  });
+  FACTORY_AREAS.forEach(a=>{
+    newSettings['freight_'+a+'_11噸'] = document.getElementById('fr-'+a+'-11')?.value||0;
+    newSettings['freight_'+a+'_65噸'] = document.getElementById('fr-'+a+'-65')?.value||0;
+    newSettings['freight_'+a+'_35噸'] = document.getElementById('fr-'+a+'-35')?.value||0;
+  });
+  newSettings['dropfee_11噸'] = document.getElementById('dropfee-11')?.value||0;
+  newSettings['dropfee_65噸'] = document.getElementById('dropfee-65')?.value||0;
+  newSettings['dropfee_35噸'] = document.getElementById('dropfee-35')?.value||0;
+  newSettings['freight_轉倉'] = document.getElementById('freight-transfer')?.value||0;
+  try {
+    const result = await apiCall({action:'saveFreightSettings', password:adminPw, settings:newSettings});
+    if(result.success) toast('✅ 運費設定已儲存！');
+    else toast('❌ '+result.error);
+  } catch(e){ toast('❌ 連線失敗'); }
+}
+
 function salaryMonthPrev(){ salaryMonth--; if(salaryMonth<0){salaryMonth=11;salaryYear--;} updateLabels(); loadSalary(); }
 function salaryMonthNext(){ salaryMonth++; if(salaryMonth>11){salaryMonth=0;salaryYear++;} updateLabels(); loadSalary(); }
 function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} updateLabels(); renderCalendar(); }
@@ -393,11 +667,10 @@ async function adminLogin() {
   document.getElementById('app-screen').style.display='block';
   document.getElementById('role-badge').textContent = '管理員';
   buildTabs();
-  // 從 Sheets 載入帳號
   await loadAccountsFromCloud();
   renderAccounts();
   populateDriverSelects();
-  loadSalary();
+  loadRevenue();
 }
 
 function buildTabs() {
@@ -424,9 +697,11 @@ function showTab(t,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('on'));
   document.getElementById('page-'+t).classList.add('on'); el.classList.add('on');
-  if(t==='calendar') renderCalendar();
-  if(t==='rates') loadRates();
+  if(t==='revenue') loadRevenue();
   if(t==='salary') loadSalary();
+  if(t==='calendar') renderCalendar();
+  if(t==='freight') loadFreightSettings();
+  if(t==='rates') loadRates();
 }
 
 function toast(msg) {
@@ -641,7 +916,7 @@ function showDriverDetail(name) {
   const records=(d.records||[]).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   document.getElementById('detail-modal-content').innerHTML=records.length===0?'<div class="empty">無紀錄</div>':records.map(r=>{
     const routes=[];
-    for(let n=1;n<=ROUTE_COUNT;n++) if(r['r'+n]) routes.push(r['r'+n]+(r['a'+n]?'('+r['a'+n]+')':'')+(r['t'+n]?'['+r['t'+n]+']':''));
+    for(let n=1;n<=ROUTE_COUNT;n++) if(r['r'+n]) routes.push(r['r'+n]+(r['a'+n]?'('+r['a'+n]+')':'')+(r['c'+n]?' '+r['c'+n]+'間':'')+(r['t'+n]?'['+r['t'+n]+']':''));
     return `<div class="detail-record">
       <div class="detail-name">📅 ${fmtDate(r.date)}</div>
       ${routes.map((rt,i)=>`<div class="detail-row"><span class="lbl">趟次${i+1}</span><span class="val">${rt}</span></div>`).join('')}
