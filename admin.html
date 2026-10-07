@@ -575,12 +575,13 @@ async function loadRevenue() {
     });
     if(s.transfer.count > 0){
       const color = AREA_COLORS['轉倉'];
-      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px">
+      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px;cursor:pointer" onclick="toggleAreaDetail('area-detail-轉倉','轉倉')">
         <div class="driver-header">
-          <div class="driver-name" style="color:${color}">🔄 轉倉</div>
+          <div class="driver-name" style="color:${color}">🔄 轉倉 <span style="font-size:11px;color:var(--sub)">點擊看日期明細 ▼</span></div>
           <div class="driver-salary" style="color:${color}">${fmt$(s.transfer.revenue)}</div>
         </div>
         <div class="driver-row"><span class="lbl">共 ${s.transfer.count} 次</span><span class="val"><b style="color:${color}">${fmt$(s.transfer.revenue)}</b></span></div>
+        <div id="area-detail-轉倉" style="display:none;margin-top:10px;border-top:1px solid var(--pink-l);padding-top:10px"></div>
       </div>`;
     }
     document.getElementById('revenue-detail-cards').innerHTML = detailHtml || '<div class="empty">本月尚無資料</div>';
@@ -593,8 +594,38 @@ function toggleAreaDetail(divId, area) {
   const div = document.getElementById(divId);
   if (!div) return;
   if (div.style.display !== 'none') { div.style.display='none'; return; }
-  // 從暫存資料裡篩選這個地區的所有趟次
   const records = window._revenueRecords || [];
+  const color = AREA_COLORS[area]||'var(--pink)';
+
+  // 轉倉特別處理
+  if(area === '轉倉') {
+    const dayMap = {};
+    records.forEach(r => {
+      const transfer = parseInt(r.transfer||0);
+      if(transfer <= 0) return;
+      const ds = String(r.date||'').substring(0,10);
+      if(!dayMap[ds]) dayMap[ds]=[];
+      dayMap[ds].push({ name: r.name, count: transfer });
+    });
+    const sorted = Object.keys(dayMap).sort();
+    if(!sorted.length){ div.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center">無資料</div>'; div.style.display='block'; return; }
+    div.innerHTML = sorted.map(ds=>{
+      const m = ds.match(/^\d{4}-(\d{2})-(\d{2})/);
+      const dateLabel = m ? parseInt(m[1])+'/'+parseInt(m[2]) : ds;
+      const items = dayMap[ds];
+      const total = items.reduce((s,i)=>s+i.count,0);
+      return `<div style="margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:${color};margin-bottom:3px">📅 ${dateLabel}（共${total}次）</div>
+        ${items.map(t=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 6px;background:var(--pink-ll);border-radius:6px;margin-bottom:2px">
+          <span style="color:var(--sub)">${t.name}</span>
+          <span style="font-weight:600">${t.count}次</span>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+    div.style.display='block';
+    return;
+  }
+
   const isFactory = area.startsWith('廠提');
   const factoryArea = isFactory ? area.replace('廠提','') : null;
 
