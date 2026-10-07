@@ -276,6 +276,9 @@
       <div class="cal-grid" id="senior-cal-grid"></div>
     </div>
 
+    <!-- 當天明細 -->
+    <div id="senior-day-detail"></div>
+
     <!-- 幹部帳號管理 -->
     <div class="card" id="senior-account-section" style="display:none">
       <div class="card-title">帳號管理</div>
@@ -823,8 +826,16 @@ function renderCalendar(){
 }
 function recordMonthPrev(){ recordMonth--; if(recordMonth<0){recordMonth=11;recordYear--;} loadMyRecords(); }
 function recordMonthNext(){ recordMonth++; if(recordMonth>11){recordMonth=0;recordYear++;} loadMyRecords(); }
-function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCalendar(); }
-function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCalendar(); }
+function seniorCalPrev(){
+  seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;}
+  const d=document.getElementById('senior-day-detail'); if(d) d.innerHTML='';
+  renderSeniorCalendar();
+}
+function seniorCalNext(){
+  seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;}
+  const d=document.getElementById('senior-day-detail'); if(d) d.innerHTML='';
+  renderSeniorCalendar();
+}
 
 // 幹部帳號管理
 async function loadSeniorAccounts(){
@@ -920,21 +931,36 @@ function showSeniorDayDetail(ds){
   let html=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">📅 ${dateLabel} 出勤（${recs.length}人）</div>`;
   recs.forEach(r=>{
     const routes=[];
-    for(let n=1;n<=ROUTE_COUNT;n++) if(r['r'+n]) routes.push((r['a'+n]||r['r'+n])+(r['t'+n]?'['+r['t'+n]+']':''));
-    html+=`<div style="background:var(--pink-ll);border-radius:10px;padding:10px;margin-bottom:8px;border:1px solid var(--border)">
-      <div style="font-size:13px;font-weight:700;color:var(--pink);margin-bottom:4px">👤 ${r.name}</div>
-      ${routes.map((rt,i)=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--sub)">趟次${i+1}</span><span style="font-weight:600">${rt}</span></div>`).join('')}
-      ${r.factory&&r.factory!=='無'?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--sub)">廠提</span><span style="font-weight:600">${r.factory}</span></div>`:''}
-      ${r.transfer?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0"><span style="color:var(--sub)">轉倉</span><span style="font-weight:600">${r.transfer}次</span></div>`:''}
+    for(let n=1;n<=ROUTE_COUNT;n++){
+      if(r['r'+n]){
+        let rt=r['r'+n];
+        if(r['a'+n]) rt+='（'+r['a'+n]+'）';
+        if(r['c'+n]) rt+=' '+r['c'+n]+'間';
+        if(r['t'+n]) rt+=' ['+r['t'+n]+']';
+        routes.push(rt);
+      }
+    }
+    const fac=r.factory&&r.factory!=='無'
+      ?r.factory+(r.factoryCount?'（'+r.factoryCount+'間）':'')+(r.factoryTon?'['+r.factoryTon+']':''):'';
+    html+=`<div style="background:var(--pink-ll);border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:13px;font-weight:700;color:var(--pink)">👤 ${r.name}</div>
+        <div style="font-size:11px;color:var(--sub)">${r.plate||''}</div>
+      </div>
+      ${routes.map((rt,i)=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span style="color:var(--sub)">趟次${i+1}</span><span style="font-weight:600">${rt}</span></div>`).join('')}
+      ${fac?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.05)"><span style="color:var(--sub)">廠提</span><span style="font-weight:600">${fac}</span></div>`:''}
+      ${r.transfer?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0"><span style="color:var(--sub)">轉倉</span><span style="font-weight:600">${r.transfer}次</span></div>`:''}
     </div>`;
   });
-  // 用簡單 alert 或 modal 顯示
-  const modal=document.getElementById('modal');
-  if(modal){
-    document.getElementById('modal-title-text').textContent='全員出勤狀況';
-    document.getElementById('modal-body').innerHTML=html;
-    modal.style.display='flex';
-  } else { alert(recs.map(r=>r.name).join('、')+' 有出勤'); }
+  // 顯示在月曆下方
+  const detail=document.getElementById('senior-day-detail');
+  if(detail){
+    detail.innerHTML=`<div class="card" style="margin-top:12px">
+      <div class="card-title">📅 ${dateLabel} 出勤明細（${recs.length}人）</div>
+      ${html}
+    </div>`;
+    detail.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
 }
 
 function salaryMonthPrev(){ salaryMonth--; if(salaryMonth<0){salaryMonth=11;salaryYear--;} loadSalary(); }
@@ -1371,8 +1397,16 @@ async function saveEdit(){
 
 // 幹部全員月曆
 
-function seniorCalPrev(){ seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;} renderSeniorCalendar(); }
-function seniorCalNext(){ seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;} renderSeniorCalendar(); }
+function seniorCalPrev(){
+  seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;}
+  const d=document.getElementById('senior-day-detail'); if(d) d.innerHTML='';
+  renderSeniorCalendar();
+}
+function seniorCalNext(){
+  seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;}
+  const d=document.getElementById('senior-day-detail'); if(d) d.innerHTML='';
+  renderSeniorCalendar();
+}
 
 // 幹部帳號管理
 async function loadSeniorAccounts(){
