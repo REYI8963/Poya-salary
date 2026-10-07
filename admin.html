@@ -462,8 +462,12 @@ async function loadRevenue() {
       apiCall({action:'getFreightSummary', password:adminPw, year:revenueYear, month:revenueMonth+1}),
       apiCall({action:'getAllRecords', password:adminPw})
     ]);
+    console.log('🚛 getFreightSummary 回傳:', JSON.stringify(result).substring(0,500));
     if(result.error){ document.getElementById('revenue-total-card').innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
     const s = result.summary;
+    console.log('📊 summary.total:', s.total);
+    console.log('📊 summary.areas:', JSON.stringify(s.areas));
+    console.log('📊 settings:', JSON.stringify(result.settings).substring(0,300));
     // 存起來供點擊明細用
     const prefix = String(revenueYear)+'-'+String(revenueMonth+1).padStart(2,'0');
     window._revenueRecords = (allResult.records||[])
