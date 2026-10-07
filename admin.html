@@ -458,9 +458,17 @@ async function loadRevenue() {
   document.getElementById('revenue-chart-card').innerHTML='';
   document.getElementById('revenue-detail-cards').innerHTML='';
   try {
-    const result = await apiCall({action:'getFreightSummary', password:adminPw, year:revenueYear, month:revenueMonth+1});
+    const [result, allResult] = await Promise.all([
+      apiCall({action:'getFreightSummary', password:adminPw, year:revenueYear, month:revenueMonth+1}),
+      apiCall({action:'getAllRecords', password:adminPw})
+    ]);
     if(result.error){ document.getElementById('revenue-total-card').innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
     const s = result.summary;
+    // 存起來供點擊明細用
+    const prefix = String(revenueYear)+'-'+String(revenueMonth+1).padStart(2,'0');
+    window._revenueRecords = (allResult.records||[])
+      .map(r=>({...r, date:fixDateFormat(r.date, r.time)}))
+      .filter(r=>String(r.date||'').substring(0,7)===prefix);
     const rocYear = revenueYear-1911;
     const mLabel = rocYear+'年'+(revenueMonth+1)+'月';
 
@@ -529,12 +537,13 @@ async function loadRevenue() {
           <span class="val">運費${fmt$(d.freightRevenue)}${d.dropRevenue>0?' + 下點'+fmt$(d.dropRevenue):''} = <b style="color:${color}">${fmt$(d.revenue)}</b></span>
         </div>`;
       });
-      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px">
+      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px;cursor:pointer" onclick="toggleAreaDetail('area-detail-${a}','${a}')">
         <div class="driver-header">
-          <div class="driver-name" style="color:${color}">📍 ${a}</div>
+          <div class="driver-name" style="color:${color}">📍 ${a} <span style="font-size:11px;color:var(--sub)">點擊看日期明細 ▼</span></div>
           <div class="driver-salary" style="color:${color}">${fmt$(s.areas[a].revenue)}</div>
         </div>
         ${rows}
+        <div id="area-detail-${a}" style="display:none;margin-top:10px;border-top:1px solid var(--pink-l);padding-top:10px"></div>
       </div>`;
     });
     FACTORY_AREAS.forEach(a=>{
@@ -546,11 +555,12 @@ async function loadRevenue() {
         if(!d || d.trips === 0) return;
         rows += `<div class="driver-row"><span class="lbl">${t} × ${d.trips}趟</span><span class="val"><b style="color:${color}">${fmt$(d.revenue)}</b></span></div>`;
       });
-      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px">
+      detailHtml += `<div class="driver-card" style="border-left-color:${color};margin-bottom:10px;cursor:pointer" onclick="toggleAreaDetail('area-detail-${a}','${a}')">
         <div class="driver-header">
-          <div class="driver-name" style="color:${color}">🏭 ${a}</div>
+          <div class="driver-name" style="color:${color}">🏭 ${a} <span style="font-size:11px;color:var(--sub)">點擊看日期明細 ▼</span></div>
           <div class="driver-salary" style="color:${color}">${fmt$(s.factory[a].revenue)}</div>
         </div>${rows}
+        <div id="area-detail-${a}" style="display:none;margin-top:10px;border-top:1px solid var(--pink-l);padding-top:10px"></div>
       </div>`;
     });
     if(s.transfer.count > 0){
@@ -567,6 +577,62 @@ async function loadRevenue() {
   } catch(e) {
     document.getElementById('revenue-total-card').innerHTML='<div class="empty">❌ 連線失敗</div>';
   }
+}
+
+function toggleAreaDetail(divId, area) {
+  const div = document.getElementById(divId);
+  if (!div) return;
+  if (div.style.display !== 'none') { div.style.display='none'; return; }
+  // 從暫存資料裡篩選這個地區的所有趟次
+  const records = window._revenueRecords || [];
+  const isFactory = area.startsWith('廠提');
+  const factoryArea = isFactory ? area.replace('廠提','') : null;
+
+  // 按日期分組
+  const dayMap = {};
+  records.forEach(r => {
+    if(isFactory) {
+      if(r.factory !== factoryArea) return;
+      const ds = String(r.date||'').substring(0,10);
+      if(!dayMap[ds]) dayMap[ds]=[];
+      dayMap[ds].push({
+        name: r.name,
+        info: r.factory+'（'+r.factoryCount+'間）['+r.factoryTon+']',
+        type: 'factory'
+      });
+    } else {
+      let found = false;
+      for(let n=1;n<=6;n++){
+        if(r['r'+n] && (r['a'+n]||'').trim()===area){
+          const ds = String(r.date||'').substring(0,10);
+          if(!dayMap[ds]) dayMap[ds]=[];
+          dayMap[ds].push({
+            name: r.name,
+            info: r['r'+n]+'（'+r['a'+n]+'）'+r['c'+n]+'間 ['+r['t'+n]+']',
+            type: 'route'
+          });
+        }
+      }
+    }
+  });
+
+  const sorted = Object.keys(dayMap).sort();
+  if(!sorted.length){ div.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center">無資料</div>'; div.style.display='block'; return; }
+
+  const color = AREA_COLORS[area]||'var(--pink)';
+  div.innerHTML = sorted.map(ds=>{
+    const m = ds.match(/^\d{4}-(\d{2})-(\d{2})/);
+    const dateLabel = m ? parseInt(m[1])+'/'+parseInt(m[2]) : ds;
+    const trips = dayMap[ds];
+    return `<div style="margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;color:${color};margin-bottom:3px">📅 ${dateLabel}（${trips.length}趟）</div>
+      ${trips.map(t=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 6px;background:var(--pink-ll);border-radius:6px;margin-bottom:2px">
+        <span style="color:var(--sub)">${t.name}</span>
+        <span style="font-weight:600">${t.info}</span>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+  div.style.display='block';
 }
 
 function drawPieChart(data, colors, labels, total) {
@@ -607,8 +673,8 @@ async function loadFreightSettings() {
       <tr>
         <td style="padding:8px;border:1px solid var(--border);font-weight:700;background:var(--pink-ll);text-align:center">${a}</td>
         <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-11" value="${s['freight_'+a+'_11噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||s['freight_'+a+'_6.5噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||s['freight_'+a+'_3.5噸']||0}"></td>
       </tr>`).join('');
 
     // 廠提費率表格
@@ -617,8 +683,8 @@ async function loadFreightSettings() {
       <tr>
         <td style="padding:8px;border:1px solid var(--border);font-weight:700;background:var(--pink-ll);text-align:center">${a}</td>
         <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-11" value="${s['freight_'+a+'_11噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||0}"></td>
-        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-65" value="${s['freight_'+a+'_65噸']||s['freight_'+a+'_6.5噸']||0}"></td>
+        <td style="padding:4px;border:1px solid var(--border)"><input type="number" style="width:100%;padding:6px;border:none;text-align:center;font-size:13px;background:transparent" id="fr-${a}-35" value="${s['freight_'+a+'_35噸']||s['freight_'+a+'_3.5噸']||0}"></td>
       </tr>`).join('');
 
     // 下點費
