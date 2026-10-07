@@ -629,7 +629,6 @@ function toggleAreaDetail(divId, area) {
   const isFactory = area.startsWith('廠提');
   const factoryArea = isFactory ? area.replace('廠提','') : null;
 
-  // 按日期分組
   const dayMap = {};
   records.forEach(r => {
     if(isFactory) {
@@ -642,7 +641,6 @@ function toggleAreaDetail(divId, area) {
         type: 'factory'
       });
     } else {
-      let found = false;
       for(let n=1;n<=6;n++){
         if(r['r'+n] && (r['a'+n]||'').trim()===area){
           const ds = String(r.date||'').substring(0,10);
@@ -659,8 +657,7 @@ function toggleAreaDetail(divId, area) {
 
   const sorted = Object.keys(dayMap).sort();
   if(!sorted.length){ div.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center">無資料</div>'; div.style.display='block'; return; }
-
-  const color = AREA_COLORS[area]||'var(--pink)';
+  // color 已在上方宣告
   div.innerHTML = sorted.map(ds=>{
     const m = ds.match(/^\d{4}-(\d{2})-(\d{2})/);
     const dateLabel = m ? parseInt(m[1])+'/'+parseInt(m[2]) : ds;
