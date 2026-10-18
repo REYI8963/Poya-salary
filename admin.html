@@ -191,8 +191,22 @@
     </div>
   </div>
 
+  <!-- 收支概況 -->
+  <div class="page on" id="page-overview">
+    <div class="card">
+      <div class="card-title">選擇月份</div>
+      <div class="month-nav">
+        <button class="nav-btn" onclick="overviewMonthPrev()">‹</button>
+        <div class="month-label" id="overview-month-label"></div>
+        <button class="nav-btn" onclick="overviewMonthNext()">›</button>
+      </div>
+    </div>
+    <div id="overview-cards"></div>
+    <div id="overview-charts"></div>
+  </div>
+
   <!-- 本月收益 -->
-  <div class="page on" id="page-revenue">
+  <div class="page" id="page-revenue">
     <div class="card">
       <div class="card-title">選擇月份</div>
       <div class="month-nav">
@@ -483,6 +497,7 @@ window.onload = () => {
   calYear = now.getFullYear(); calMonth = now.getMonth();
   revenueYear = now.getFullYear(); revenueMonth = now.getMonth();
   expenseYear = now.getFullYear(); expenseMonth = now.getMonth();
+  overviewYear = now.getFullYear(); overviewMonth = now.getMonth();
   updateLabels();
   const now2 = new Date();
   document.getElementById('deduct-month').value = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
@@ -499,6 +514,8 @@ function updateLabels() {
   if(document.getElementById('revenue-month-label')) document.getElementById('revenue-month-label').textContent=rR;
   const rE=(expenseYear-1911)+'年'+String(expenseMonth+1).padStart(2,'0')+'月';
   if(document.getElementById('expense-month-label')) document.getElementById('expense-month-label').textContent=rE;
+  const rO=(overviewYear-1911)+'年'+String(overviewMonth+1).padStart(2,'0')+'月';
+  if(document.getElementById('overview-month-label')) document.getElementById('overview-month-label').textContent=rO;
 }
 function revenueMonthPrev(){ revenueMonth--; if(revenueMonth<0){revenueMonth=11;revenueYear--;} updateLabels(); loadRevenue(); }
 function revenueMonthNext(){ revenueMonth++; if(revenueMonth>11){revenueMonth=0;revenueYear++;} updateLabels(); loadRevenue(); }
@@ -779,6 +796,118 @@ function drawPieChart(data, colors, labels, total) {
   });
 }
 
+// ===== 收支概況 =====
+let overviewYear, overviewMonth;
+const EXPENSE_COLORS = {'司機薪資':'#E8317A','勞保費':'#4A90D9','健保費':'#5CB85C','車輛費用':'#F47920','規費稅金':'#9B59B6','總務雜支':'#17A2B8','其他':'#95A5A6'};
+
+function overviewMonthPrev(){ overviewMonth--; if(overviewMonth<0){overviewMonth=11;overviewYear--;} updateLabels(); loadOverview(); }
+function overviewMonthNext(){ overviewMonth++; if(overviewMonth>11){overviewMonth=0;overviewYear++;} updateLabels(); loadOverview(); }
+
+function ensureChartJs(cb){
+  if(typeof Chart !== 'undefined'){ cb(); return; }
+  const sc = document.createElement('script');
+  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+  sc.onload = cb;
+  document.head.appendChild(sc);
+}
+
+function drawOverviewPie(canvasId, data, colors, labels){
+  const ctx = document.getElementById(canvasId);
+  if(!ctx) return;
+  if(ctx._chartInstance) ctx._chartInstance.destroy();
+  const total = data.reduce((a,b)=>a+b,0);
+  ctx._chartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(c){
+          const pct = total ? Math.round(c.parsed/total*100) : 0;
+          return c.label + ': $' + c.parsed.toLocaleString() + ' (' + pct + '%)';
+        } } }
+      }
+    }
+  });
+}
+
+function overviewLegend(labels, data, colors){
+  const total = data.reduce((a,b)=>a+b,0);
+  return labels.map((l,i)=>{
+    const pct = total ? Math.round(data[i]/total*100) : 0;
+    return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;margin-top:4px">'
+      + '<div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+colors[i]+'"></div>'
+      + '<span>'+escHtml(l)+' '+fmt$(data[i])+' ('+pct+'%)</span></div>';
+  }).join('');
+}
+
+function overviewPieBox(title, canvasId, labels, data, colors){
+  if(!data.length) return '<div><div style="text-align:center;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px">'+title+'</div><div class="empty" style="padding:30px 8px;font-size:12px">本月無資料</div></div>';
+  return '<div><div style="text-align:center;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px">'+title+'</div>'
+    + '<div style="position:relative;height:140px"><canvas id="'+canvasId+'"></canvas></div>'
+    + '<div style="margin-top:8px">'+overviewLegend(labels,data,colors)+'</div></div>';
+}
+
+async function loadOverview() {
+  const cards = document.getElementById('overview-cards');
+  const charts = document.getElementById('overview-charts');
+  cards.innerHTML = '<div class="loading">🔄 載入中...</div>';
+  charts.innerHTML = '';
+  try {
+    const [rev, exp] = await Promise.all([
+      apiCall({action:'getFreightSummary', password:adminPw, year:overviewYear, month:overviewMonth+1}),
+      apiCall({action:'getExpenses', password:adminPw, year:overviewYear, month:overviewMonth+1})
+    ]);
+    if(rev.error || exp.error){ cards.innerHTML = '<div class="empty">❌ '+escHtml(rev.error||exp.error)+'</div>'; return; }
+    const s = rev.summary || {};
+
+    // 收入來源
+    const inL = [], inD = [], inC = [];
+    AREAS.forEach(a=>{ if(s.areas && s.areas[a] && s.areas[a].revenue>0){ inL.push(a); inD.push(s.areas[a].revenue); inC.push(AREA_COLORS[a]); } });
+    FACTORY_AREAS.forEach(a=>{ if(s.factory && s.factory[a] && s.factory[a].revenue>0){ inL.push(a); inD.push(s.factory[a].revenue); inC.push(AREA_COLORS[a]); } });
+    if(s.transfer && s.transfer.revenue>0){ inL.push('轉倉'); inD.push(s.transfer.revenue); inC.push(AREA_COLORS['轉倉']); }
+    if(s.hardDrop && s.hardDrop.revenue>0){ inL.push('困下費'); inD.push(s.hardDrop.revenue); inC.push(AREA_COLORS['困下費']); }
+    const income = s.total || 0;
+
+    // 支出項目
+    const fees = exp.companyFees || {labor:0, health:0};
+    const salary = exp.salaryTotal || 0;
+    const catSum = {'車輛費用':0,'規費稅金':0,'總務雜支':0,'其他':0};
+    (exp.expenses||[]).forEach(x=>{ if(catSum[x.category]===undefined) catSum[x.category]=0; catSum[x.category]+=(parseInt(x.amount)||0); });
+    const exL = [], exD = [], exC = [];
+    [['司機薪資',salary],['勞保費',fees.labor||0],['健保費',fees.health||0]].concat(Object.keys(catSum).map(k=>[k,catSum[k]])).forEach(p=>{
+      if(p[1]>0){ exL.push(p[0]); exD.push(p[1]); exC.push(EXPENSE_COLORS[p[0]]||'#95A5A6'); }
+    });
+    const expense = salary + (fees.labor||0) + (fees.health||0) + Object.keys(catSum).reduce((a,k)=>a+catSum[k],0);
+    const net = income - expense;
+    const neg = net < 0;
+
+    cards.innerHTML = `
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num" style="color:var(--green);font-size:17px">${fmt$(income)}</div><div class="stat-lbl">總收入</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--orange);font-size:17px">${fmt$(expense)}</div><div class="stat-lbl">總支出</div></div>
+        <div class="stat-box" style="${neg?'background:#fde8e8;border-color:#e74c3c':''}"><div class="stat-num" style="color:${neg?'#e74c3c':'var(--pink)'};font-size:17px">${neg?'-':''}${fmt$(Math.abs(net))}</div><div class="stat-lbl">淨利</div></div>
+      </div>
+      ${neg?'<div style="background:#fde8e8;border:1.5px solid #e74c3c;color:#c0392b;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;margin-bottom:12px;text-align:center">⚠️ 本月支出大於收入，虧損 '+fmt$(Math.abs(net))+'</div>':''}`;
+
+    charts.innerHTML = `
+      <div class="card">
+        <div class="card-title">收入與支出分佈</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          ${overviewPieBox('收入來源','ov-income-pie',inL,inD,inC)}
+          ${overviewPieBox('支出項目','ov-expense-pie',exL,exD,exC)}
+        </div>
+      </div>`;
+    if(inD.length || exD.length){
+      ensureChartJs(()=>{
+        if(inD.length) drawOverviewPie('ov-income-pie', inD, inC, inL);
+        if(exD.length) drawOverviewPie('ov-expense-pie', exD, exC, exL);
+      });
+    }
+  } catch(e){ cards.innerHTML = '<div class="empty">❌ 連線失敗</div>'; }
+}
+
 // ===== 本月支出 =====
 const EXPENSE_WORDS = {
   '車輛費用':['油資','引擎保養','輪胎更換','煞車維修','車輛清洗','冷氣維修','買雨刷','買大餅','買燈泡'],
@@ -986,14 +1115,15 @@ async function adminLogin() {
   await loadAccountsFromCloud();
   renderAccounts();
   populateDriverSelects();
-  loadRevenue();
+  loadOverview();
 }
 
 function buildTabs() {
   const tabs = document.getElementById('main-tabs');
   const allTabs = [
-    {id:'revenue', label:'\u{1F4CA} \u672C\u6708\u6536\u76CA'},
-    {id:'expense', label:'\u{1F4B8} \u672C\u6708\u652F\u51FA'},
+    {id:'overview', label:'📈 收支概況'},
+    {id:'revenue', label:'📊 本月收入'},
+    {id:'expense', label:'💸 本月支出'},
     {id:'salary', label:'\u{1F4B0} \u85AA\u8CC7\u6982\u6CC1'},
     {id:'calendar', label:'\u{1F4C5} \u51FA\u52E4\u6708\u66C6'},
     {id:'freight', label:'\u{1F69B} \u904B\u8CBB\u8A2D\u5B9A'},
@@ -1002,7 +1132,7 @@ function buildTabs() {
   ];
   tabs.innerHTML = allTabs.map((t,i)=>`<div class="tab ${i===0?'on':''}" onclick="showTab('${t.id}',this)">${t.label}</div>`).join('');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  document.getElementById('page-revenue').classList.add('on');
+  document.getElementById('page-overview').classList.add('on');
 }
 
 function adminLogout() {
@@ -1016,6 +1146,7 @@ function showTab(t,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('on'));
   document.getElementById('page-'+t).classList.add('on'); el.classList.add('on');
+  if(t==='overview') loadOverview();
   if(t==='revenue') loadRevenue();
   if(t==='expense') loadExpenses();
   if(t==='salary') loadSalary();
