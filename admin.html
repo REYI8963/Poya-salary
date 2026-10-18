@@ -248,6 +248,10 @@
       <div class="card-title">轉倉運費（每趟固定）</div>
       <div class="rate-item"><div class="rate-label">轉倉 / 趟</div><input class="rate-input" type="number" id="freight-transfer" placeholder="0"></div>
     </div>
+    <div class="card">
+      <div class="card-title">困下費（每站）</div>
+      <div class="rate-item"><div class="rate-label">困下費 / 站</div><input class="rate-input" type="number" id="harddrop-fee" placeholder="200"></div>
+    </div>
     <button class="btn btn-primary" onclick="saveFreightSettings()">💾 儲存運費設定</button>
   </div>
 
@@ -393,7 +397,7 @@ const ROUTE_COUNT = 6;
 const RATE_LABELS = {'rate_台南':'台南路線','rate_嘉義':'嘉義路線','rate_雲林':'雲林路線','rate_高雄':'高雄路線','rate_廠提台南':'廠提台南','rate_廠提台中':'廠提台中','rate_轉倉':'轉倉'};
 const AREA_COLORS = {
   '台南':'#4A90D9','嘉義':'#5CB85C','雲林':'#F47920','高雄':'#9B59B6',
-  '廠提台南':'#E8317A','廠提台中':'#E74C3C','轉倉':'#95A5A6'
+  '廠提台南':'#E8317A','廠提台中':'#E74C3C','轉倉':'#95A5A6','困下費':'#17A2B8'
 };
 const AREAS = ['台南','嘉義','雲林','高雄'];
 const TONS = ['11噸','6.5噸','3.5噸'];
@@ -506,6 +510,9 @@ async function loadRevenue() {
     if(s.transfer.revenue > 0){
       chartLabels.push('轉倉'); chartData.push(s.transfer.revenue); chartColors.push(AREA_COLORS['轉倉']);
     }
+    if(s.hardDrop && s.hardDrop.revenue > 0){
+      chartLabels.push('困下費'); chartData.push(s.hardDrop.revenue); chartColors.push(AREA_COLORS['困下費']);
+    }
 
     // 圓餅圖
     if(chartData.length > 0){
@@ -584,6 +591,19 @@ async function loadRevenue() {
         <div id="area-detail-轉倉" style="display:none;margin-top:10px;border-top:1px solid var(--pink-l);padding-top:10px"></div>
       </div>`;
     }
+    window._hardDropList = (s.hardDrop && s.hardDrop.list) || [];
+    window._hardDropFee = (s.hardDrop && s.hardDrop.fee) || 0;
+    if(s.hardDrop && s.hardDrop.stations > 0){
+      const hdColor = AREA_COLORS['困下費'];
+      detailHtml += `<div class="driver-card" style="border-left-color:${hdColor};margin-bottom:10px;cursor:pointer" onclick="toggleAreaDetail('area-detail-困下費','困下費')">
+        <div class="driver-header">
+          <div class="driver-name" style="color:${hdColor}">🚧 困下費 <span style="font-size:11px;color:var(--sub)">點擊看日期明細 ▼</span></div>
+          <div class="driver-salary" style="color:${hdColor}">${fmt$(s.hardDrop.revenue)}</div>
+        </div>
+        <div class="driver-row"><span class="lbl">${s.hardDrop.days}天 / 共${s.hardDrop.stations}站 × ${fmt$(s.hardDrop.fee)}</span><span class="val"><b style="color:${hdColor}">${fmt$(s.hardDrop.revenue)}</b></span></div>
+        <div id="area-detail-困下費" style="display:none;margin-top:10px;border-top:1px solid var(--pink-l);padding-top:10px"></div>
+      </div>`;
+    }
     document.getElementById('revenue-detail-cards').innerHTML = detailHtml || '<div class="empty">本月尚無資料</div>';
   } catch(e) {
     document.getElementById('revenue-total-card').innerHTML='<div class="empty">❌ 連線失敗</div>';
@@ -596,6 +616,22 @@ function toggleAreaDetail(divId, area) {
   if (div.style.display !== 'none') { div.style.display='none'; return; }
   const records = window._revenueRecords || [];
   const color = AREA_COLORS[area]||'var(--pink)';
+
+  // 困下費：資料來自後端摘要
+  if(area === '困下費') {
+    const list = window._hardDropList || [];
+    const fee = (list.length && window._hardDropFee) ? window._hardDropFee : 0;
+    if(!list.length){ div.innerHTML='<div style="color:var(--sub);font-size:13px;text-align:center">無資料</div>'; div.style.display='block'; return; }
+    div.innerHTML = list.map(x=>{
+      const dl = parseInt(x.date.substring(5,7))+'/'+parseInt(x.date.substring(8,10));
+      return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 6px;background:var(--pink-ll);border-radius:6px;margin-bottom:3px">
+        <span style="color:${color};font-weight:700">📅 ${dl}</span>
+        <span style="font-weight:600">${x.stations}站${fee?' = '+fmt$(x.stations*fee):''}</span>
+      </div>`;
+    }).join('');
+    div.style.display='block';
+    return;
+  }
 
   // 轉倉特別處理
   if(area === '轉倉') {
@@ -730,6 +766,7 @@ async function loadFreightSettings() {
     document.getElementById('dropfee-65').value = s['dropfee_6.5噸']||s['dropfee_65噸']||0;
     document.getElementById('dropfee-35').value = s['dropfee_3.5噸']||s['dropfee_35噸']||0;
     document.getElementById('freight-transfer').value = s['freight_轉倉']||0;
+    document.getElementById('harddrop-fee').value = (s['harddrop_fee']===undefined||s['harddrop_fee']==='') ? 200 : s['harddrop_fee'];
   } catch(e){ toast('❌ 載入失敗'); }
 }
 
@@ -749,6 +786,7 @@ async function saveFreightSettings() {
   newSettings['dropfee_6.5噸'] = document.getElementById('dropfee-65')?.value||0;
   newSettings['dropfee_3.5噸'] = document.getElementById('dropfee-35')?.value||0;
   newSettings['freight_轉倉'] = document.getElementById('freight-transfer')?.value||0;
+  newSettings['harddrop_fee'] = document.getElementById('harddrop-fee')?.value||0;
   try {
     const result = await apiCall({action:'saveFreightSettings', password:adminPw, settings:newSettings});
     if(result.success) toast('✅ 運費設定已儲存！');

@@ -178,6 +178,7 @@
     <div class="tab" onclick="showTab('salary',this)">💰 本月薪資</div>
     <div class="tab" onclick="showTab('download',this)">⬇️ PDF匯出</div>
     <div class="tab" id="senior-cal-tab" style="display:none" onclick="showTab('senior-cal',this)">👥 全員月曆</div>
+    <div class="tab" id="harddrop-tab" style="display:none" onclick="showTab('harddrop',this)">🚧 困下費</div>
   </div>
 
   <!-- 填報 -->
@@ -284,6 +285,31 @@
       <div class="card-title">帳號管理</div>
       <div id="senior-account-list"></div>
       <button class="btn btn-primary" style="margin-top:12px" onclick="openSeniorAddModal()">➕ 新增運務士</button>
+    </div>
+  </div>
+
+  <!-- 困下費（幹部） -->
+  <div class="page" id="page-harddrop">
+    <div class="card">
+      <div class="card-title">登記困下費</div>
+      <div class="fg"><label>日期</label><input type="date" id="hd-date"></div>
+      <div class="fg"><label>需加收困下費的據點共幾站</label><input type="number" id="hd-stations" min="0" inputmode="numeric" placeholder="例：3"></div>
+      <button class="btn btn-primary" id="hd-save-btn" onclick="saveHardDropEntry()">💾 儲存</button>
+      <div style="font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6">同一天再儲存一次會覆蓋前一次；站數填 0 可取消當天的登記。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">困下費月曆</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <button class="cal-nav" onclick="hardDropPrev()">‹</button>
+        <div style="flex:1;text-align:center;font-size:15px;font-weight:700" id="hd-cal-label"></div>
+        <button class="cal-nav" onclick="hardDropNext()">›</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num" style="color:var(--pink)" id="hd-sum-days">0</div><div class="stat-lbl">加收天數</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:#F47920" id="hd-sum-stations">0</div><div class="stat-lbl">共幾站</div></div>
+      </div>
+      <div class="cal-grid" id="hd-cal-grid"></div>
+      <div style="font-size:11px;color:var(--sub);margin-top:8px">點日期可帶入上方修改</div>
     </div>
   </div>
 
@@ -494,6 +520,7 @@ async function syncFromCloud() {
           sessionStorage.setItem('poya_role',r.role);
           const tab=document.getElementById('senior-cal-tab');
           if(tab) tab.style.display=isSenior()?'':'none';
+          updateHardDropTab();
         }
       }).catch(()=>{});
     } else {
@@ -694,6 +721,7 @@ function showApp(){
   const now2=new Date();
   salaryYear=now2.getFullYear(); salaryMonth=now2.getMonth();
   document.getElementById('salary-month-label').textContent=(salaryYear-1911)+'年'+String(salaryMonth+1).padStart(2,'0')+'月';
+  updateHardDropTab();
 }
 function doLogin(){
   const name=document.getElementById('login-name').value;
@@ -745,6 +773,7 @@ function showTab(t,el){
   if(t==='calendar') renderCalendar();
   if(t==='salary') loadSalary();
   if(t==='senior-cal') renderSeniorCalendar();
+  if(t==='harddrop') renderHardDrop();
 }
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
 
@@ -878,6 +907,80 @@ async function seniorDeleteAccount(name){
     if(result.success){ toast('🗑️ 已刪除 '+name); loadSeniorAccounts(); loadDriverList(); }
     else toast('❌ '+result.error);
   } catch(e){ toast('❌ 連線失敗'); }
+}
+
+// ===== 困下費（幹部）=====
+let hardDropYear=new Date().getFullYear(), hardDropMonth=new Date().getMonth();
+function hdTodayStr(){
+  const n=new Date();
+  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+}
+function hdAuth(){ return {name:currentUser, pw:sessionStorage.getItem('poya_pw')||''}; }
+function updateHardDropTab(){
+  const tab=document.getElementById('harddrop-tab');
+  if(tab) tab.style.display=isSenior()?'':'none';
+}
+function hardDropPrev(){ hardDropMonth--; if(hardDropMonth<0){hardDropMonth=11;hardDropYear--;} renderHardDrop(); }
+function hardDropNext(){ hardDropMonth++; if(hardDropMonth>11){hardDropMonth=0;hardDropYear++;} renderHardDrop(); }
+async function renderHardDrop(){
+  const grid=document.getElementById('hd-cal-grid');
+  const label=document.getElementById('hd-cal-label');
+  if(!grid||!label) return;
+  const dateEl=document.getElementById('hd-date');
+  if(dateEl && !dateEl.value) dateEl.value=hdTodayStr();
+  label.textContent=(hardDropYear-1911)+'年'+String(hardDropMonth+1).padStart(2,'0')+'月';
+  grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">🔄 載入中...</div>';
+  try {
+    const result=await apiCall({action:'getHardDrops', ...hdAuth(), year:hardDropYear, month:hardDropMonth+1});
+    if(!result.success){ grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">❌ '+(result.error||'無法載入')+'</div>'; return; }
+    const map={}; let days=0, total=0;
+    (result.list||[]).forEach(x=>{ map[x.date]=x.stations; days++; total+=x.stations; });
+    window._hdMap=map;
+    document.getElementById('hd-sum-days').textContent=days;
+    document.getElementById('hd-sum-stations').textContent=total;
+    const firstDay=new Date(hardDropYear,hardDropMonth,1).getDay();
+    const dim=new Date(hardDropYear,hardDropMonth+1,0).getDate();
+    const today=hdTodayStr();
+    let html=['日','一','二','三','四','五','六'].map(d=>`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--sub);padding:4px 0">${d}</div>`).join('');
+    for(let i=0;i<firstDay;i++) html+='<div></div>';
+    for(let d=1;d<=dim;d++){
+      const ds=hardDropYear+'-'+String(hardDropMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      const st=map[ds]||0;
+      const bg=st>0?'background:var(--pink-ll);border-color:var(--pink)':'';
+      const isToday=ds===today?'border:2px solid var(--pink)!important;':'';
+      html+=`<div style="border:1px solid var(--border);border-radius:8px;padding:3px;min-height:48px;cursor:pointer;${isToday}${bg}" onclick="hardDropPick('${ds}')">
+        <div style="font-size:11px;font-weight:600">${d}</div>
+        ${st>0?`<div style="font-size:11px;color:var(--pink);font-weight:800">${st}站</div>`:''}
+      </div>`;
+    }
+    grid.innerHTML=html;
+  } catch(e){ grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">❌ 連線失敗</div>'; }
+}
+function hardDropPick(ds){
+  document.getElementById('hd-date').value=ds;
+  const st=(window._hdMap||{})[ds];
+  document.getElementById('hd-stations').value=st?st:'';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+async function saveHardDropEntry(){
+  const date=document.getElementById('hd-date').value;
+  const raw=document.getElementById('hd-stations').value;
+  const stations=parseInt(raw);
+  if(!date){ toast('⚠️ 請選擇日期'); return; }
+  if(raw===''||isNaN(stations)||stations<0){ toast('⚠️ 請輸入站數'); return; }
+  const btn=document.getElementById('hd-save-btn');
+  btn.disabled=true; btn.textContent='儲存中...';
+  try {
+    const r=await apiCall({action:'saveHardDrop', ...hdAuth(), date, stations});
+    if(r.success){
+      toast(stations===0?'🗑️ 已取消當天登記':'✅ 已儲存 '+date+'：'+stations+'站');
+      document.getElementById('hd-stations').value='';
+      const y=parseInt(date.substring(0,4)), m=parseInt(date.substring(5,7))-1;
+      hardDropYear=y; hardDropMonth=m;
+      renderHardDrop();
+    } else toast('❌ '+(r.error||'儲存失敗'));
+  } catch(e){ toast('❌ 連線失敗'); }
+  btn.disabled=false; btn.textContent='💾 儲存';
 }
 
 async function renderSeniorCalendar(){
