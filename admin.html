@@ -793,19 +793,11 @@ function escHtml(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/
 function expenseMonthPrev(){ expenseMonth--; if(expenseMonth<0){expenseMonth=11;expenseYear--;} updateLabels(); loadExpenses(); }
 function expenseMonthNext(){ expenseMonth++; if(expenseMonth>11){expenseMonth=0;expenseYear++;} updateLabels(); loadExpenses(); }
 
-function getLearnedWords(cat){
-  try { const all = JSON.parse(localStorage.getItem('poya_expense_words')||'{}'); return all[cat]||[]; } catch(e){ return []; }
-}
-function learnWord(cat, word){
-  try {
-    const all = JSON.parse(localStorage.getItem('poya_expense_words')||'{}');
-    const list = all[cat]||[];
-    if(list.indexOf(word)===-1 && (EXPENSE_WORDS[cat]||[]).indexOf(word)===-1){ list.push(word); all[cat]=list; localStorage.setItem('poya_expense_words', JSON.stringify(all)); }
-  } catch(e){}
-}
 function refreshExpenseWords(){
   const cat = document.getElementById('exp-cat').value;
-  const words = (EXPENSE_WORDS[cat]||[]).concat(getLearnedWords(cat));
+  const server = (expenseCache && expenseCache.words && expenseCache.words[cat]) || [];
+  const words = [];
+  (EXPENSE_WORDS[cat]||[]).concat(server).forEach(w=>{ if(words.indexOf(w)===-1) words.push(w); });
   document.getElementById('exp-words').innerHTML = words.map(w=>'<option value="'+escHtml(w)+'">').join('');
 }
 
@@ -829,6 +821,7 @@ async function loadExpenses() {
 
 function renderExpenses() {
   const r = expenseCache; if(!r) return;
+  refreshExpenseWords();
   const rocLabel = (expenseYear-1911)+'年'+(expenseMonth+1)+'月';
   const fees = r.companyFees || {labor:0, health:0, effectiveFrom:''};
   const misc = (r.expenses||[]).reduce((s,x)=>s+(parseInt(x.amount)||0),0);
@@ -862,7 +855,7 @@ function renderExpenses() {
     <div class="deduction-item" style="border-color:var(--border);border-left-color:var(--pink)">
       <div class="deduction-info">
         <div class="name">${EXPENSE_ICONS[x.category]||'📦'} ${escHtml(x.description)}</div>
-        <div class="reason">${fmtDate(x.date)} ｜ ${escHtml(x.category)}${x.note?' ｜ '+escHtml(x.note):''}</div>
+        <div class="reason">${fmtDate(x.date)} ｜ ${escHtml(x.category)}${x.note?' ｜ '+escHtml(x.note):''}${x.by?' ｜ 登錄：'+escHtml(x.by):''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="deduction-amount" style="color:var(--pink)">${fmt$(x.amount)}</div>
@@ -894,7 +887,6 @@ async function addExpenseEntry() {
   try {
     const r = await apiCall({action:'addExpense', password:adminPw, date, category, description, amount, note});
     if(r.success){
-      learnWord(category, description);
       toast('✅ 已新增 '+description+' '+fmt$(amount));
       document.getElementById('exp-desc').value='';
       document.getElementById('exp-amount').value='';

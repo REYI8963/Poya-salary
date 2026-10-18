@@ -179,6 +179,7 @@
     <div class="tab" onclick="showTab('download',this)">⬇️ PDF匯出</div>
     <div class="tab" id="senior-cal-tab" style="display:none" onclick="showTab('senior-cal',this)">👥 全員月曆</div>
     <div class="tab" id="harddrop-tab" style="display:none" onclick="showTab('harddrop',this)">🚧 困下費</div>
+    <div class="tab" id="expense-tab" style="display:none" onclick="showTab('expense',this)">💸 支出</div>
   </div>
 
   <!-- 填報 -->
@@ -310,6 +311,35 @@
       </div>
       <div class="cal-grid" id="hd-cal-grid"></div>
       <div style="font-size:11px;color:var(--sub);margin-top:8px">點日期可帶入上方修改</div>
+    </div>
+  </div>
+
+  <!-- 支出登錄（幹部） -->
+  <div class="page" id="page-expense">
+    <div class="card">
+      <div class="card-title">登錄支出</div>
+      <div class="fg"><label>日期</label><input type="date" id="sx-date"></div>
+      <div class="fg"><label>分類</label>
+        <select id="sx-cat" onchange="sxRefreshWords()">
+          <option value="車輛費用">🚗 車輛費用</option>
+          <option value="規費稅金">📋 規費稅金</option>
+          <option value="總務雜支">🏢 總務雜支</option>
+          <option value="其他">📦 其他</option>
+        </select>
+      </div>
+      <div class="fg"><label>說明</label><input type="text" id="sx-desc" list="sx-words" placeholder="例：油資" autocomplete="off"><datalist id="sx-words"></datalist></div>
+      <div class="fg"><label>金額</label><input type="number" id="sx-amount" min="0" inputmode="numeric" placeholder="例：1500"></div>
+      <div class="fg"><label>備註（可填車牌）</label><input type="text" id="sx-note" placeholder="選填"></div>
+      <button class="btn btn-primary" id="sx-save-btn" onclick="saveSeniorExpense()">💾 儲存</button>
+      <div style="font-size:11px;color:var(--sub);margin-top:8px;line-height:1.6">只能登錄本月與上個月；明細只顯示你自己登錄的，也只能刪除自己的。</div>
+    </div>
+    <div class="card">
+      <div class="card-title">我登錄的支出明細</div>
+      <div class="area-chips" style="margin-bottom:12px">
+        <button class="chip on" id="sx-m0" onclick="sxSetMonth(0)">本月</button>
+        <button class="chip" id="sx-m1" onclick="sxSetMonth(1)">上個月</button>
+      </div>
+      <div id="sx-list"></div>
     </div>
   </div>
 
@@ -774,6 +804,7 @@ function showTab(t,el){
   if(t==='salary') loadSalary();
   if(t==='senior-cal') renderSeniorCalendar();
   if(t==='harddrop') renderHardDrop();
+  if(t==='expense') renderSeniorExpense();
 }
 function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
 
@@ -919,6 +950,8 @@ function hdAuth(){ return {name:currentUser, pw:sessionStorage.getItem('poya_pw'
 function updateHardDropTab(){
   const tab=document.getElementById('harddrop-tab');
   if(tab) tab.style.display=isSenior()?'':'none';
+  const et=document.getElementById('expense-tab');
+  if(et) et.style.display=isSenior()?'':'none';
 }
 function hardDropPrev(){ hardDropMonth--; if(hardDropMonth<0){hardDropMonth=11;hardDropYear--;} renderHardDrop(); }
 function hardDropNext(){ hardDropMonth++; if(hardDropMonth>11){hardDropMonth=0;hardDropYear++;} renderHardDrop(); }
@@ -981,6 +1014,110 @@ async function saveHardDropEntry(){
     } else toast('❌ '+(r.error||'儲存失敗'));
   } catch(e){ toast('❌ 連線失敗'); }
   btn.disabled=false; btn.textContent='💾 儲存';
+}
+
+// ===== 支出登錄（幹部）=====
+const SX_WORDS = {
+  '車輛費用':['油資','引擎保養','輪胎更換','煞車維修','車輛清洗','冷氣維修','買雨刷','買大餅','買燈泡'],
+  '規費稅金':['牌照稅','燃料稅','驗車費','罰款'],
+  '總務雜支':['飲用水','文具用品','清潔用品','辦公雜支'],
+  '其他':['餐費','交通費']
+};
+const SX_ICONS = {'車輛費用':'🚗','規費稅金':'📋','總務雜支':'🏢','其他':'📦'};
+let sxOffset = 0;
+let sxServerWords = {};
+function sxEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function sxPad(n){ return String(n).padStart(2,'0'); }
+function sxMonthOf(offset){
+  const n=new Date(); let y=n.getFullYear(), m=n.getMonth()-offset;
+  while(m<0){ m+=12; y--; }
+  return {y:y, m:m};
+}
+function sxDefaultDate(){
+  const mo=sxMonthOf(sxOffset);
+  if(sxOffset===0) return hdTodayStr();
+  return mo.y+'-'+sxPad(mo.m+1)+'-'+sxPad(new Date(mo.y,mo.m+1,0).getDate());
+}
+function sxRefreshWords(){
+  const cat=document.getElementById('sx-cat').value;
+  const words=[];
+  (SX_WORDS[cat]||[]).concat(sxServerWords[cat]||[]).forEach(w=>{ if(words.indexOf(w)===-1) words.push(w); });
+  document.getElementById('sx-words').innerHTML=words.map(w=>'<option value="'+sxEsc(w)+'">').join('');
+}
+function sxSetMonth(o){
+  sxOffset=o;
+  document.getElementById('sx-m0').classList.toggle('on',o===0);
+  document.getElementById('sx-m1').classList.toggle('on',o===1);
+  document.getElementById('sx-date').value=sxDefaultDate();
+  renderSeniorExpense();
+}
+async function renderSeniorExpense(){
+  const list=document.getElementById('sx-list');
+  if(!list) return;
+  const dEl=document.getElementById('sx-date');
+  const cur=sxMonthOf(0), prev=sxMonthOf(1);
+  dEl.min=prev.y+'-'+sxPad(prev.m+1)+'-01';
+  dEl.max=cur.y+'-'+sxPad(cur.m+1)+'-'+sxPad(new Date(cur.y,cur.m+1,0).getDate());
+  if(!dEl.value) dEl.value=sxDefaultDate();
+  sxRefreshWords();
+  list.innerHTML='<div style="text-align:center;color:var(--sub);padding:20px">🔄 載入中...</div>';
+  const mo=sxMonthOf(sxOffset);
+  try {
+    const r=await apiCall({action:'seniorGetExpenses', ...hdAuth(), year:mo.y, month:mo.m+1});
+    if(!r.success){ list.innerHTML='<div style="text-align:center;color:var(--sub);padding:20px">❌ '+sxEsc(r.error||'無法載入')+'</div>'; return; }
+    sxServerWords=r.words||{};
+    sxRefreshWords();
+    const items=r.expenses||[];
+    if(!items.length){ list.innerHTML='<div class="empty" style="padding:20px">這個月你還沒有登錄支出</div>'; return; }
+    list.innerHTML=items.map(x=>{
+      const mine=(x.by===currentUser);
+      const dl=parseInt(x.date.substring(5,7))+'/'+parseInt(x.date.substring(8,10));
+      return `<div class="record-card" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="record-date" style="margin-bottom:0">${SX_ICONS[x.category]||'📦'} ${sxEsc(x.description)}</div>
+          <div style="font-weight:800;color:var(--pink)">$${Number(x.amount).toLocaleString('zh-TW')}</div>
+        </div>
+        <div style="font-size:11px;color:var(--sub);margin-top:4px">${dl} ｜ ${sxEsc(x.category)}${x.note?' ｜ '+sxEsc(x.note):''}</div>
+        ${mine?`<div class="record-actions"><button class="btn btn-danger" onclick="deleteSeniorExpense('${sxEsc(x.id)}')">🗑️ 刪除</button></div>`:''}
+      </div>`;
+    }).join('');
+  } catch(e){ list.innerHTML='<div style="text-align:center;color:var(--sub);padding:20px">❌ 連線失敗</div>'; }
+}
+async function saveSeniorExpense(){
+  const date=document.getElementById('sx-date').value;
+  const category=document.getElementById('sx-cat').value;
+  const description=document.getElementById('sx-desc').value.trim();
+  const amount=parseInt(document.getElementById('sx-amount').value);
+  const note=document.getElementById('sx-note').value.trim();
+  if(!date){ toast('⚠️ 請選擇日期'); return; }
+  if(!description){ toast('⚠️ 請輸入說明'); return; }
+  if(isNaN(amount)||amount<=0){ toast('⚠️ 請輸入金額'); return; }
+  const btn=document.getElementById('sx-save-btn');
+  btn.disabled=true; btn.textContent='儲存中...';
+  try {
+    const r=await apiCall({action:'seniorAddExpense', ...hdAuth(), date, category, description, amount, note});
+    if(r.success){
+      toast('✅ 已儲存 '+description+' $'+amount);
+      document.getElementById('sx-desc').value='';
+      document.getElementById('sx-amount').value='';
+      document.getElementById('sx-note').value='';
+      const cur=sxMonthOf(0);
+      const isCur=(date.substring(0,7)===cur.y+'-'+sxPad(cur.m+1));
+      sxOffset=isCur?0:1;
+      document.getElementById('sx-m0').classList.toggle('on',sxOffset===0);
+      document.getElementById('sx-m1').classList.toggle('on',sxOffset===1);
+      renderSeniorExpense();
+    } else toast('❌ '+(r.error||'儲存失敗'));
+  } catch(e){ toast('❌ 連線失敗'); }
+  btn.disabled=false; btn.textContent='💾 儲存';
+}
+async function deleteSeniorExpense(id){
+  if(!confirm('確定刪除這筆支出？')) return;
+  try {
+    const r=await apiCall({action:'seniorDeleteExpense', ...hdAuth(), id});
+    if(r.success){ toast('🗑️ 已刪除'); renderSeniorExpense(); }
+    else toast('❌ '+(r.error||'刪除失敗'));
+  } catch(e){ toast('❌ 連線失敗'); }
 }
 
 async function renderSeniorCalendar(){
