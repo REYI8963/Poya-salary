@@ -142,6 +142,11 @@
   .empty { text-align:center; color:#d0a0b4; padding:40px 20px; font-size:14px; }
   .loading { text-align:center; color:var(--sub); padding:30px; font-size:14px; }
   .toast { display:none; position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:var(--text); color:white; padding:11px 22px; border-radius:22px; font-size:13px; z-index:999; white-space:nowrap; }
+  .ov-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+  .ov-grid > div { min-width:0; }
+  .ov-stat .stat-box { min-width:0; padding:12px 4px; }
+  .ov-stat .stat-num { font-size:clamp(12px,4.2vw,17px); white-space:nowrap; }
+  @media (max-width:520px) { .ov-grid { grid-template-columns:minmax(0,1fr); gap:20px; } }
 </style>
 </head>
 <body>
@@ -884,17 +889,17 @@ async function loadOverview() {
     const neg = net < 0;
 
     cards.innerHTML = `
-      <div class="stats-row">
-        <div class="stat-box"><div class="stat-num" style="color:var(--green);font-size:17px">${fmt$(income)}</div><div class="stat-lbl">總收入</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--orange);font-size:17px">${fmt$(expense)}</div><div class="stat-lbl">總支出</div></div>
-        <div class="stat-box" style="${neg?'background:#fde8e8;border-color:#e74c3c':''}"><div class="stat-num" style="color:${neg?'#e74c3c':'var(--pink)'};font-size:17px">${neg?'-':''}${fmt$(Math.abs(net))}</div><div class="stat-lbl">淨利</div></div>
+      <div class="stats-row ov-stat">
+        <div class="stat-box"><div class="stat-num" style="color:var(--green)">${fmt$(income)}</div><div class="stat-lbl">總收入</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--orange)">${fmt$(expense)}</div><div class="stat-lbl">總支出</div></div>
+        <div class="stat-box" style="${neg?'background:#fde8e8;border-color:#e74c3c':''}"><div class="stat-num" style="color:${neg?'#e74c3c':'var(--pink)'}">${neg?'-':''}${fmt$(Math.abs(net))}</div><div class="stat-lbl">淨利</div></div>
       </div>
       ${neg?'<div style="background:#fde8e8;border:1.5px solid #e74c3c;color:#c0392b;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;margin-bottom:12px;text-align:center">⚠️ 本月支出大於收入，虧損 '+fmt$(Math.abs(net))+'</div>':''}`;
 
     charts.innerHTML = `
       <div class="card">
         <div class="card-title">收入與支出分佈</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="ov-grid">
           ${overviewPieBox('收入來源','ov-income-pie',inL,inD,inC)}
           ${overviewPieBox('支出項目','ov-expense-pie',exL,exD,exC)}
         </div>
