@@ -566,12 +566,8 @@ async function loadRevenue() {
       apiCall({action:'getFreightSummary', password:adminPw, year:revenueYear, month:revenueMonth+1}),
       apiCall({action:'getAllRecords', password:adminPw})
     ]);
-    console.log('🚛 getFreightSummary 回傳:', JSON.stringify(result).substring(0,500));
     if(result.error){ document.getElementById('revenue-total-card').innerHTML=`<div class="empty">❌ ${result.error}</div>`; return; }
     const s = result.summary;
-    console.log('📊 summary.total:', s.total);
-    console.log('📊 summary.areas:', JSON.stringify(s.areas));
-    console.log('📊 settings:', JSON.stringify(result.settings).substring(0,300));
     // 存起來供點擊明細用
     const prefix = String(revenueYear)+'-'+String(revenueMonth+1).padStart(2,'0');
     window._revenueRecords = (allResult.records||[])
@@ -582,15 +578,12 @@ async function loadRevenue() {
 
     // 總收益卡
     const totalCardEl = document.getElementById('revenue-total-card');
-    console.log('🎯 revenue-total-card 元素:', totalCardEl ? '存在' : '不存在！');
-    console.log('🎯 page-revenue display:', document.getElementById('page-revenue')?.style.display, document.getElementById('page-revenue')?.className);
     if(totalCardEl) {
       totalCardEl.innerHTML=`
         <div class="card" style="text-align:center;background:linear-gradient(135deg,#1a1a2e,#16213e);border:none;margin-bottom:12px">
           <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600">${mLabel} 本月總運費收益</div>
           <div style="font-size:38px;font-weight:900;color:white">${fmt$(s.total)}</div>
         </div>`;
-      console.log('🎯 innerHTML 設定完成，內容長度:', totalCardEl.innerHTML.length);
     }
 
     // 計算各地區收益（用於圓餅圖）
@@ -1344,15 +1337,15 @@ function renderAccounts() {
     const roleCls=role==='senior'?'role-senior':'role-driver';
     return `<div class="account-item">
       <div class="account-info">
-        <div class="account-avatar">${name[0]}</div>
+        <div class="account-avatar">${escHtml(String(name||'')[0]||'')}</div>
         <div>
-          <div class="account-name">${name} <span class="driver-role-badge ${roleCls}">${roleLabel}</span></div>
+          <div class="account-name">${escHtml(name)} <span class="driver-role-badge ${roleCls}">${roleLabel}</span></div>
           <div class="account-detail">密碼：${'●'.repeat(pw.length)} ｜ 角色：${role==='senior'?'🔵 幹部':'⚪ 司機'}</div>
         </div>
       </div>
       <div class="account-actions">
-        <button class="btn-sm btn-sm-edit" onclick="openEditModal('${name}','${pw}','${role}')">✏️ 修改</button>
-        <button class="btn-sm btn-sm-del" onclick="deleteAccount('${name}')">🗑️ 刪除</button>
+        <button class="btn-sm btn-sm-edit" data-name="${escHtml(name)}" data-pw="${escHtml(pw)}" data-role="${escHtml(role)}" onclick="openEditModal(this.dataset.name,this.dataset.pw,this.dataset.role)">✏️ 修改</button>
+        <button class="btn-sm btn-sm-del" data-name="${escHtml(name)}" onclick="deleteAccount(this.dataset.name)">🗑️ 刪除</button>
       </div>
     </div>`;
   }).join('');
@@ -1363,7 +1356,7 @@ function populateDriverSelects() {
   ['deduct-driver','deduct-modal-driver'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el) return;
-    el.innerHTML='<option value="">選擇司機</option>'+names.map(n=>`<option>${n}</option>`).join('');
+    el.innerHTML='<option value="">選擇司機</option>'+names.map(n=>`<option>${escHtml(n)}</option>`).join('');
   });
 }
 
@@ -1442,7 +1435,7 @@ async function loadSalary() {
 
     const chips=document.getElementById('driver-filter-chips');
     chips.innerHTML=`<div class="filter-chip on" onclick="setDriverFilter('')" data-name="">全部司機</div>`
-      +(summaryCache||[]).map(d=>`<div class="filter-chip" onclick="setDriverFilter('${d.name}')" data-name="${d.name}">${d.name}</div>`).join('');
+      +(summaryCache||[]).map(d=>`<div class="filter-chip" onclick="setDriverFilter(this.dataset.name)" data-name="${escHtml(d.name)}">${escHtml(d.name)}</div>`).join('');
 
     const totalSalary=(summaryCache||[]).reduce((s,d)=>s+d.salary+(d.baseSalary||0)-(d.healthInsurance||0)-((d.deductions||[]).reduce((a,x)=>a+parseInt(x.amount||0),0)),0);
     const totalTrips=(summaryCache||[]).reduce((s,d)=>s+d.trips,0);
@@ -1479,11 +1472,11 @@ function renderSalaryCards(summary) {
       <div class="driver-row"><span class="lbl">廠提${k}</span><span class="val">${v}趟 = ${fmt$(v*(parseInt(currentSettings['rate_廠提'+k])||0))}</span></div>`).join('');
     const trRow=d.transfer>0?`<div class="driver-row"><span class="lbl">轉倉</span><span class="val">${d.transfer}次 = ${fmt$(d.transfer*(parseInt(currentSettings['rate_轉倉'])||300))}</span></div>`:'';
     const healthRow=health>0?`<div class="driver-row" style="color:#e74c3c"><span class="lbl">健保自付額</span><span class="val">- ${fmt$(health)}</span></div>`:'';
-    const deductRows=(d.deductions||[]).map(x=>`<div class="deduction-row"><span>${x.reason||'扣款'}</span><span>- ${fmt$(parseInt(x.amount||0))}</span></div>`).join('');
+    const deductRows=(d.deductions||[]).map(x=>`<div class="deduction-row"><span>${escHtml(x.reason||'扣款')}</span><span>- ${fmt$(parseInt(x.amount||0))}</span></div>`).join('');
 
-    return `<div class="driver-card" onclick="showDriverDetail('${d.name}')">
+    return `<div class="driver-card" data-name="${escHtml(d.name)}" onclick="showDriverDetail(this.dataset.name)">
       <div class="driver-header">
-        <div class="driver-name">👤 ${d.name} <span class="driver-role-badge ${roleCls}">${roleLabel}</span></div>
+        <div class="driver-name">👤 ${escHtml(d.name)} <span class="driver-role-badge ${roleCls}">${roleLabel}</span></div>
         <div class="driver-total">
           <div class="driver-salary">${fmt$(total)}</div>
           <div class="driver-base">底薪${fmt$(base)} + 趟次${fmt$(d.salary)}</div>
@@ -1598,7 +1591,7 @@ function showCalDetail(ds) {
     for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n]){let rt=r['r'+n];if(r['a'+n])rt+='（'+r['a'+n]+'）';if(r['c'+n])rt+=' '+r['c'+n]+'間';if(r['t'+n])rt+=' ['+r['t'+n]+']';routes.push(rt);}}
     const fac=r.factory&&r.factory!=='無'?r.factory+(r.factoryTon?'['+r.factoryTon+']':''):'';
     return `<div class="detail-record">
-      <div class="detail-name">👤 ${r.name}${r.plate?' · '+r.plate:''}</div>
+      <div class="detail-name">👤 ${escHtml(r.name)}${r.plate?' · '+escHtml(r.plate):''}</div>
       ${routes.map((rt,i)=>`<div class="detail-row"><span class="lbl">趟次${i+1}</span><span class="val">${rt}</span></div>`).join('')}
       ${fac?`<div class="detail-row"><span class="lbl">廠提</span><span class="val">${fac}</span></div>`:''}
       ${r.transfer?`<div class="detail-row"><span class="lbl">轉倉</span><span class="val">${r.transfer}次</span></div>`:''}
@@ -1647,8 +1640,8 @@ async function loadDeductions() {
     list.innerHTML=deductions.map(d=>`
       <div class="deduction-item">
         <div class="deduction-info">
-          <div class="name">👤 ${d.name}</div>
-          <div class="reason">${d.reason}</div>
+          <div class="name">👤 ${escHtml(d.name)}</div>
+          <div class="reason">${escHtml(d.reason)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div class="deduction-amount">-${fmt$(parseInt(d.amount||0))}</div>
@@ -1679,14 +1672,14 @@ async function loadRates() {
     // 健保設定
     document.getElementById('health-grid').innerHTML=names.map(name=>`
       <div class="rate-item">
-        <div class="rate-label">👤 ${name}</div>
-        <input class="rate-input" type="number" id="health-${name}" placeholder="0" value="${s['health_'+name]||''}">
+        <div class="rate-label">👤 ${escHtml(name)}</div>
+        <input class="rate-input" type="number" id="health-${escHtml(name)}" placeholder="0" value="${escHtml(s['health_'+name]||'')}">
       </div>`).join('');
 
     // 各司機底薪
     document.getElementById('driver-base-list').innerHTML=`<div style="margin-top:10px"><div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:8px">各司機個別底薪</div><div class="rate-grid">${names.map(name=>`
-      <div class="rate-item"><div class="rate-label">${name}</div>
-      <input class="rate-input" type="number" id="base-${name}" placeholder="${s['base_salary']||20000}" value="${s['base_salary_'+name]||''}">
+      <div class="rate-item"><div class="rate-label">${escHtml(name)}</div>
+      <input class="rate-input" type="number" id="base-${escHtml(name)}" placeholder="${s['base_salary']||20000}" value="${escHtml(s['base_salary_'+name]||'')}">
       </div>`).join('')}</div></div>`;
 
     // 路線費率

@@ -458,12 +458,12 @@ async function loadDriverList() {
   if (!sel) return;
   const fallbackList = ['李憶擇','梁世昌','劉哲維','陳勇德','王晴益'];
   const fallbackHtml = '<option value="">── 請選擇姓名 ──</option>'
-    + fallbackList.map(n=>`<option>${n}</option>`).join('');
+    + fallbackList.map(n=>`<option>${sxEsc(n)}</option>`).join('');
   try {
     const result = await apiCall({action:'getAccounts', password:'__public__'});
     if (result.success && result.accounts && result.accounts.length > 0) {
       sel.innerHTML = '<option value="">── 請選擇姓名 ──</option>'
-        + result.accounts.map(a=>`<option>${a.name}</option>`).join('');
+        + result.accounts.map(a=>`<option>${sxEsc(a.name)}</option>`).join('');
     } else {
       sel.innerHTML = fallbackHtml;
     }
@@ -472,18 +472,19 @@ async function loadDriverList() {
   }
 }
 
+// 司機動作：後端會驗證姓名＋密碼，這裡自動帶上登入時的密碼
+const DRIVER_AUTH_ACTIONS = ['submit','getMyRecords','update','delete','getMyDeductions'];
 async function apiCall(data) {
   try {
-    console.log('📤 API 呼叫:', data.action, data.name||'');
+    if (DRIVER_AUTH_ACTIONS.indexOf(data.action) !== -1 && data.pw === undefined) {
+      data = Object.assign({}, data, { pw: sessionStorage.getItem('poya_pw') || '' });
+    }
     const res = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify(data)
     });
-    const json = await res.json();
-    console.log('📥 API 回應:', data.action, JSON.stringify(json).substring(0,150));
-    return json;
+    return await res.json();
   } catch(err) {
-    console.error('❌ API Error:', err);
     return { error: err.toString() };
   }
 }
@@ -517,7 +518,7 @@ async function syncRatesFromCloud() {
       if(s['rate_轉倉']) SALARY_RATES['轉倉'] = parseInt(s['rate_轉倉']);
       BASE_SALARY = parseInt(s['base_salary_'+currentUser] || s['base_salary'] || 20000);
     }
-  } catch(e) { console.log('費率同步失敗，使用預設值'); }
+  } catch(e) {}
 }
 
 function skey(u){ return 'poya_records_'+u; }
@@ -533,11 +534,8 @@ function saveRecords(r){
 async function syncFromCloud() {
   try {
     showSyncStatus('🔄 同步中...');
-    console.log('🔄 開始同步，使用者:', currentUser);
     const result = await apiCall({ action: 'getMyRecords', name: currentUser });
-    console.log('📡 API 回傳:', JSON.stringify(result).substring(0, 200));
     if (result.success) {
-      console.log('✅ 取得', result.records.length, '筆資料');
       const fixed = result.records.map(r => ({...r, date: fixDateFormat(r.date, r.time)}));
       localStorage.setItem(skey(currentUser), JSON.stringify(fixed));
       showSyncStatus('✅ 已同步 ' + fixed.length + '筆');
@@ -554,7 +552,6 @@ async function syncFromCloud() {
         }
       }).catch(()=>{});
     } else {
-      console.error('❌ API 回傳錯誤:', result);
       showSyncStatus('⚠️ 使用本地資料');
       setTimeout(() => showSyncStatus(''), 3000);
     }
@@ -739,8 +736,6 @@ function showApp(){
   if(isSenior()) loadSeniorAccounts();
   buildRouteInputs('routes-container','',ROUTE_COUNT);
   buildRouteInputs('edit-routes-container','edit-',ROUTE_COUNT);
-  console.log('🚀 showApp 啟動，使用者:', currentUser);
-  console.log('📦 本地資料:', JSON.stringify(getRecords()).substring(0,200));
   // 檢查幹部權限，顯示額外 tab
   const role = getUserRole(currentUser);
   const seniorTab = document.getElementById('senior-cal-tab');
@@ -771,7 +766,7 @@ function doLogin(){
       sessionStorage.setItem('poya_pw',pw);
       showApp();
     } else {
-      err.textContent='❌ 密碼錯誤，請重新輸入';
+      err.textContent=(result.error&&String(result.error).indexOf('嘗試次數')!==-1)?'⚠️ 嘗試次數過多，請 10 分鐘後再試':'❌ 密碼錯誤，請重新輸入';
       err.style.display='block';
     }
   }).catch(e=>{
@@ -886,59 +881,15 @@ function renderCalendar(){
 }
 function recordMonthPrev(){ recordMonth--; if(recordMonth<0){recordMonth=11;recordYear--;} loadMyRecords(); }
 function recordMonthNext(){ recordMonth++; if(recordMonth>11){recordMonth=0;recordYear++;} loadMyRecords(); }
-function seniorCalPrev(){
-  seniorCalMonth--; if(seniorCalMonth<0){seniorCalMonth=11;seniorCalYear--;}
-  const d=document.getElementById('senior-day-detail'); if(d) d.innerHTML='';
-  renderSeniorCalendar();
-}
-function seniorCalNext(){
-  seniorCalMonth++; if(seniorCalMonth>11){seniorCalMonth=0;seniorCalYear++;}
-  const d=document.getElementById('senior-day-detail'); if(d) d.innerHTML='';
-  renderSeniorCalendar();
-}
+
+
 
 // 幹部帳號管理
-async function loadSeniorAccounts(){
-  const list = document.getElementById('senior-account-list');
-  if(!list) return;
-  try {
-    const result = await apiCall({action:'getAccounts', password:'__public__'});
-    if(!result.success || !result.accounts.length){
-      list.innerHTML='<div style="color:#aaa;text-align:center;padding:16px">尚無帳號</div>';
-      return;
-    }
-    list.innerHTML = result.accounts.map(a=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--pink-l);color:var(--pink);font-weight:700;display:flex;align-items:center;justify-content:center">${a.name[0]}</div>
-          <div>
-            <div style="font-size:14px;font-weight:700">${a.name}</div>
-            <div style="font-size:11px;color:var(--sub)">${a.role==='senior'?'幹部':'司機'}</div>
-          </div>
-        </div>
-        <button style="padding:6px 12px;border:none;border-radius:8px;background:#fde8e8;color:#e74c3c;font-size:12px;font-weight:700;cursor:pointer" onclick="seniorDeleteAccount('${a.name}')">🗑️ 刪除</button>
-      </div>`).join('');
-  } catch(e){ list.innerHTML='<div style="color:#aaa;text-align:center;padding:16px">載入失敗</div>'; }
-}
 
-function openSeniorAddModal(){
-  const name = prompt('請輸入新運務士姓名：');
-  if(!name || !name.trim()) return;
-  const pw = prompt('請輸入密碼（4~6碼）：');
-  if(!pw || pw.length < 4){ alert('密碼至少4碼'); return; }
-  apiCall(Object.assign({action:'seniorSaveAccount', name:name.trim(), pw}, sAuth()))
-    .then(r=>{ if(r.success){ toast('✅ 已新增 '+name); loadSeniorAccounts(); loadDriverList(); } else { toast('❌ '+r.error); } })
-    .catch(()=>toast('❌ 連線失敗'));
-}
 
-async function seniorDeleteAccount(name){
-  if(!confirm('確定刪除「'+name+'」？')) return;
-  try {
-    const result = await apiCall(Object.assign({action:'seniorDeleteAccount', name}, sAuth()));
-    if(result.success){ toast('🗑️ 已刪除 '+name); loadSeniorAccounts(); loadDriverList(); }
-    else toast('❌ '+result.error);
-  } catch(e){ toast('❌ 連線失敗'); }
-}
+
+
+
 
 // ===== 困下費（幹部）=====
 let hardDropYear=new Date().getFullYear(), hardDropMonth=new Date().getMonth();
@@ -1237,7 +1188,7 @@ async function loadSalary(){
       if(s['rate_廠提台中']) SALARY_RATES['廠提台中']=parseInt(s['rate_廠提台中']);
       if(s['rate_轉倉']) SALARY_RATES['轉倉']=parseInt(s['rate_轉倉']);
     }
-  } catch(e){ console.log('雲端同步失敗，使用本地資料'); }
+  } catch(e){}
   const deductTotal=deductions.reduce((s,d)=>s+parseInt(d.amount||0),0);
 
   // 計算各區域趟數
@@ -1531,16 +1482,12 @@ function loadMyRecords(){
   const rawAll=getRecords(); // 原始順序（用於 index 操作）
   const all=rawAll.slice().reverse(); // 反序顯示用
   const y=recordYear, m=recordMonth;
-  console.log('📊 loadMyRecords - 總資料:', rawAll.length, '筆, 篩選月份:', y+'/'+(m+1));
   // 用字串比對避免時區問題
   const prefix=String(y)+'-'+String(m+1).padStart(2,'0');
-  console.log('🔍 篩選 prefix:', prefix);
   const thisMon=all.filter(r=>{
     const ds=String(r.date||'').substring(0,7);
-    console.log('  資料日期:', r.date, '→', ds, ds===prefix?'✅':'❌');
     return ds===prefix;
   });
-  console.log('📋 本月資料:', thisMon.length, '筆');
   const mTransfer=thisMon.reduce((s,r)=>s+(parseInt(r.transfer)||0),0);
   const mTrips=thisMon.reduce((s,r)=>{let c=0;for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])c++;}if(r.factory&&r.factory!=='無')c++;return s+c;},0);
   const rocYear=y-1911;
@@ -1662,13 +1609,13 @@ async function loadSeniorAccounts(){
     list.innerHTML = result.accounts.map(a=>`
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--pink-l);color:var(--pink);font-weight:700;display:flex;align-items:center;justify-content:center">${a.name[0]}</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--pink-l);color:var(--pink);font-weight:700;display:flex;align-items:center;justify-content:center">${sxEsc(String(a.name||'')[0]||'')}</div>
           <div>
-            <div style="font-size:14px;font-weight:700">${a.name}</div>
+            <div style="font-size:14px;font-weight:700">${sxEsc(a.name)}</div>
             <div style="font-size:11px;color:var(--sub)">${a.role==='senior'?'幹部':'司機'}</div>
           </div>
         </div>
-        <button style="padding:6px 12px;border:none;border-radius:8px;background:#fde8e8;color:#e74c3c;font-size:12px;font-weight:700;cursor:pointer" onclick="seniorDeleteAccount('${a.name}')">🗑️ 刪除</button>
+        <button style="padding:6px 12px;border:none;border-radius:8px;background:#fde8e8;color:#e74c3c;font-size:12px;font-weight:700;cursor:pointer" data-name="${sxEsc(a.name)}" onclick="seniorDeleteAccount(this.dataset.name)">🗑️ 刪除</button>
       </div>`).join('');
   } catch(e){ list.innerHTML='<div style="color:#aaa;text-align:center;padding:16px">載入失敗</div>'; }
 }
@@ -1704,9 +1651,9 @@ function showSeniorCalDetail(ds){
     const routes=[];
     for(let n=1;n<=ROUTE_COUNT;n++){if(r['r'+n])routes.push(r['r'+n]+(r['a'+n]?'('+r['a'+n]+')':'')+(r['t'+n]?'['+r['t'+n]+']':''));}
     return `<div class="record-card" style="margin-bottom:8px">
-      <div class="record-date">👤 ${r.name}</div>
-      ${routes.map((rt,i)=>`<div class="record-row"><span class="lbl">趟次${i+1}</span><span class="val">${rt}</span></div>`).join('')}
-      ${r.factory&&r.factory!=='無'?`<div class="record-row"><span class="lbl">廠提</span><span class="val">${r.factory}</span></div>`:''}
+      <div class="record-date">👤 ${sxEsc(r.name)}</div>
+      ${routes.map((rt,i)=>`<div class="record-row"><span class="lbl">趟次${i+1}</span><span class="val">${sxEsc(rt)}</span></div>`).join('')}
+      ${r.factory&&r.factory!=='無'?`<div class="record-row"><span class="lbl">廠提</span><span class="val">${sxEsc(r.factory)}</span></div>`:''}
       ${r.transfer?`<div class="record-row"><span class="lbl">轉倉</span><span class="val">${r.transfer}次</span></div>`:''}
     </div>`;
   }).join('')+'</div>';
