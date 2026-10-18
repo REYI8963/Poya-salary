@@ -498,7 +498,8 @@ let revenueYear, revenueMonth;
 let expenseYear, expenseMonth;
 let freightSettingsCache = null;
 
-let adminPw = localStorage.getItem('poya_admin_pw') || 'poya2026';
+let adminPw = '';
+try { localStorage.removeItem('poya_admin_pw'); } catch(e) {}
 
 let currentRole = ''; // 'admin' or 'senior'
 let salaryYear, salaryMonth, calYear, calMonth;
@@ -1231,7 +1232,12 @@ function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} updateLab
 async function adminLogin() {
   const pw = document.getElementById('admin-pw').value;
   const err = document.getElementById('login-error');
-  if (pw !== adminPw) { err.style.display='block'; return; }
+  if (!pw) { err.style.display='block'; return; }
+  try {
+    const v = await apiCall({action:'verifyAdmin', password:pw});
+    if (!v || !v.success) { err.style.display='block'; return; }
+  } catch(e) { err.style.display='block'; return; }
+  adminPw = pw;
   err.style.display='none';
   currentRole = 'admin';
   document.getElementById('login-screen').style.display='none';
@@ -1314,12 +1320,16 @@ async function apiCall(data) {
 }
 
 // 密碼管理
-function changeAdminPw() {
+async function changeAdminPw() {
   const newPw=document.getElementById('new-admin-pw').value.trim();
-  if(!newPw||newPw.length<4){toast('⚠️ 密碼至少4碼');return;}
-  adminPw=newPw; localStorage.setItem('poya_admin_pw',newPw);
-  document.getElementById('new-admin-pw').value='';
-  toast('✅ 管理員密碼已更新');
+  if(!newPw||newPw.length<6){toast('⚠️ 密碼至少6碼');return;}
+  try {
+    const r=await apiCall({action:'changeAdminPassword', password:adminPw, newPassword:newPw});
+    if(!r.success){toast('❌ '+(r.error||'更新失敗'));return;}
+    adminPw=newPw;
+    document.getElementById('new-admin-pw').value='';
+    toast('✅ 管理員密碼已更新（下次請用新密碼登入）');
+  } catch(e){ toast('❌ 連線失敗'); }
 }
 
 

@@ -926,7 +926,7 @@ function openSeniorAddModal(){
   if(!name || !name.trim()) return;
   const pw = prompt('請輸入密碼（4~6碼）：');
   if(!pw || pw.length < 4){ alert('密碼至少4碼'); return; }
-  apiCall({action:'saveAccount', password:'poya2026', oldName:null, name:name.trim(), pw, role:'driver'})
+  apiCall(Object.assign({action:'seniorSaveAccount', name:name.trim(), pw}, sAuth()))
     .then(r=>{ if(r.success){ toast('✅ 已新增 '+name); loadSeniorAccounts(); loadDriverList(); } else { toast('❌ '+r.error); } })
     .catch(()=>toast('❌ 連線失敗'));
 }
@@ -934,7 +934,7 @@ function openSeniorAddModal(){
 async function seniorDeleteAccount(name){
   if(!confirm('確定刪除「'+name+'」？')) return;
   try {
-    const result = await apiCall({action:'deleteAccount', password:'poya2026', name});
+    const result = await apiCall(Object.assign({action:'seniorDeleteAccount', name}, sAuth()));
     if(result.success){ toast('🗑️ 已刪除 '+name); loadSeniorAccounts(); loadDriverList(); }
     else toast('❌ '+result.error);
   } catch(e){ toast('❌ 連線失敗'); }
@@ -946,6 +946,7 @@ function hdTodayStr(){
   const n=new Date();
   return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
 }
+function sAuth(){ return {authName:currentUser, authPw:sessionStorage.getItem('poya_pw')||''}; }
 function hdAuth(){ return {name:currentUser, pw:sessionStorage.getItem('poya_pw')||''}; }
 function updateHardDropTab(){
   const tab=document.getElementById('harddrop-tab');
@@ -1128,7 +1129,7 @@ async function renderSeniorCalendar(){
   label.textContent=rocYear+'年'+String(seniorCalMonth+1).padStart(2,'0')+'月';
   grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">🔄 載入中...</div>';
   try {
-    const result=await apiCall({action:'getAllRecords',password:'poya2026'});
+    const result=await apiCall(Object.assign({action:'seniorGetAllRecords'}, sAuth()));
     if(!result.success){grid.innerHTML='<div style="grid-column:span 7;text-align:center;color:var(--sub);padding:20px">❌ 無法載入</div>';return;}
     const prefix=String(seniorCalYear)+'-'+String(seniorCalMonth+1).padStart(2,'0');
     const records=(result.records||[])
@@ -1677,7 +1678,7 @@ function openSeniorAddModal(){
   if(!name || !name.trim()) return;
   const pw = prompt('請輸入密碼（4~6碼）：');
   if(!pw || pw.length < 4){ alert('密碼至少4碼'); return; }
-  apiCall({action:'saveAccount', password:'poya2026', oldName:null, name:name.trim(), pw, role:'driver'})
+  apiCall(Object.assign({action:'seniorSaveAccount', name:name.trim(), pw}, sAuth()))
     .then(r=>{ if(r.success){ toast('✅ 已新增 '+name); loadSeniorAccounts(); loadDriverList(); } else { toast('❌ '+r.error); } })
     .catch(()=>toast('❌ 連線失敗'));
 }
@@ -1685,7 +1686,7 @@ function openSeniorAddModal(){
 async function seniorDeleteAccount(name){
   if(!confirm('確定刪除「'+name+'」？')) return;
   try {
-    const result = await apiCall({action:'deleteAccount', password:'poya2026', name});
+    const result = await apiCall(Object.assign({action:'seniorDeleteAccount', name}, sAuth()));
     if(result.success){ toast('🗑️ 已刪除 '+name); loadSeniorAccounts(); loadDriverList(); }
     else toast('❌ '+result.error);
   } catch(e){ toast('❌ 連線失敗'); }
