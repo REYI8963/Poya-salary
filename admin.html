@@ -206,6 +206,48 @@
     <div id="revenue-detail-cards"></div>
   </div>
 
+  <!-- 本月支出 -->
+  <div class="page" id="page-expense">
+    <div class="card">
+      <div class="card-title">選擇月份</div>
+      <div class="month-nav">
+        <button class="nav-btn" onclick="expenseMonthPrev()">‹</button>
+        <div class="month-label" id="expense-month-label"></div>
+        <button class="nav-btn" onclick="expenseMonthNext()">›</button>
+      </div>
+    </div>
+    <div id="expense-total-card"></div>
+    <div class="card">
+      <div class="card-title">勞保費／健保費（公司負擔）</div>
+      <div class="rate-grid">
+        <div class="rate-item"><div class="rate-label">勞保費 / 月</div><input class="rate-input" type="number" id="exp-labor" placeholder="0"></div>
+        <div class="rate-item"><div class="rate-label">健保費 / 月</div><input class="rate-input" type="number" id="exp-health" placeholder="0"></div>
+      </div>
+      <div id="exp-fee-note" style="font-size:11px;color:var(--sub);margin:10px 0;line-height:1.6"></div>
+      <button class="btn btn-primary" onclick="saveCompanyFeesUI()">💾 儲存（從此月份起生效）</button>
+    </div>
+    <div class="card">
+      <div class="card-title">新增雜支</div>
+      <div class="fg"><label>日期</label><input type="date" id="exp-date"></div>
+      <div class="fg"><label>分類</label>
+        <select id="exp-cat" onchange="refreshExpenseWords()">
+          <option value="車輛費用">🚗 車輛費用</option>
+          <option value="規費稅金">📋 規費稅金</option>
+          <option value="總務雜支">🏢 總務雜支</option>
+          <option value="其他">📦 其他</option>
+        </select>
+      </div>
+      <div class="fg"><label>說明</label><input type="text" id="exp-desc" list="exp-words" placeholder="例：油資"><datalist id="exp-words"></datalist></div>
+      <div class="fg"><label>金額</label><input type="number" id="exp-amount" inputmode="numeric" placeholder="例：1500"></div>
+      <div class="fg"><label>備註（可填車牌）</label><input type="text" id="exp-note" placeholder="選填"></div>
+      <button class="btn btn-green" onclick="addExpenseEntry()">➕ 新增</button>
+    </div>
+    <div class="card">
+      <div class="card-title">本月雜支明細</div>
+      <div id="expense-list"></div>
+    </div>
+  </div>
+
   <!-- 運費設定 -->
   <div class="page" id="page-freight">
     <div class="card">
@@ -403,6 +445,7 @@ const AREAS = ['台南','嘉義','雲林','高雄'];
 const TONS = ['11噸','6.5噸','3.5噸'];
 const FACTORY_AREAS = ['廠提台南','廠提台中'];
 let revenueYear, revenueMonth;
+let expenseYear, expenseMonth;
 let freightSettingsCache = null;
 
 let adminPw = localStorage.getItem('poya_admin_pw') || 'poya2026';
@@ -439,6 +482,7 @@ window.onload = () => {
   salaryYear = now.getFullYear(); salaryMonth = now.getMonth();
   calYear = now.getFullYear(); calMonth = now.getMonth();
   revenueYear = now.getFullYear(); revenueMonth = now.getMonth();
+  expenseYear = now.getFullYear(); expenseMonth = now.getMonth();
   updateLabels();
   const now2 = new Date();
   document.getElementById('deduct-month').value = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0');
@@ -453,6 +497,8 @@ function updateLabels() {
   if(document.getElementById('salary-month-label')) document.getElementById('salary-month-label').textContent=rS;
   if(document.getElementById('cal-month-label')) document.getElementById('cal-month-label').textContent=rC;
   if(document.getElementById('revenue-month-label')) document.getElementById('revenue-month-label').textContent=rR;
+  const rE=(expenseYear-1911)+'年'+String(expenseMonth+1).padStart(2,'0')+'月';
+  if(document.getElementById('expense-month-label')) document.getElementById('expense-month-label').textContent=rE;
 }
 function revenueMonthPrev(){ revenueMonth--; if(revenueMonth<0){revenueMonth=11;revenueYear--;} updateLabels(); loadRevenue(); }
 function revenueMonthNext(){ revenueMonth++; if(revenueMonth>11){revenueMonth=0;revenueYear++;} updateLabels(); loadRevenue(); }
@@ -733,6 +779,142 @@ function drawPieChart(data, colors, labels, total) {
   });
 }
 
+// ===== 本月支出 =====
+const EXPENSE_WORDS = {
+  '車輛費用':['油資','引擎保養','輪胎更換','煞車維修','車輛清洗','冷氣維修','買雨刷','買大餅','買燈泡'],
+  '規費稅金':['牌照稅','燃料稅','驗車費','罰款'],
+  '總務雜支':['飲用水','文具用品','清潔用品','辦公雜支'],
+  '其他':['餐費','交通費']
+};
+const EXPENSE_ICONS = {'車輛費用':'🚗','規費稅金':'📋','總務雜支':'🏢','其他':'📦'};
+let expenseCache = null;
+
+function escHtml(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function expenseMonthPrev(){ expenseMonth--; if(expenseMonth<0){expenseMonth=11;expenseYear--;} updateLabels(); loadExpenses(); }
+function expenseMonthNext(){ expenseMonth++; if(expenseMonth>11){expenseMonth=0;expenseYear++;} updateLabels(); loadExpenses(); }
+
+function getLearnedWords(cat){
+  try { const all = JSON.parse(localStorage.getItem('poya_expense_words')||'{}'); return all[cat]||[]; } catch(e){ return []; }
+}
+function learnWord(cat, word){
+  try {
+    const all = JSON.parse(localStorage.getItem('poya_expense_words')||'{}');
+    const list = all[cat]||[];
+    if(list.indexOf(word)===-1 && (EXPENSE_WORDS[cat]||[]).indexOf(word)===-1){ list.push(word); all[cat]=list; localStorage.setItem('poya_expense_words', JSON.stringify(all)); }
+  } catch(e){}
+}
+function refreshExpenseWords(){
+  const cat = document.getElementById('exp-cat').value;
+  const words = (EXPENSE_WORDS[cat]||[]).concat(getLearnedWords(cat));
+  document.getElementById('exp-words').innerHTML = words.map(w=>'<option value="'+escHtml(w)+'">').join('');
+}
+
+async function loadExpenses() {
+  const box = document.getElementById('expense-total-card');
+  box.innerHTML = '<div class="loading">🔄 載入中...</div>';
+  document.getElementById('expense-list').innerHTML = '';
+  refreshExpenseWords();
+  const dEl = document.getElementById('exp-date');
+  const now = new Date();
+  const sameMonth = (now.getFullYear()===expenseYear && now.getMonth()===expenseMonth);
+  const dayNum = sameMonth ? now.getDate() : 1;
+  dEl.value = expenseYear+'-'+String(expenseMonth+1).padStart(2,'0')+'-'+String(dayNum).padStart(2,'0');
+  try {
+    const r = await apiCall({action:'getExpenses', password:adminPw, year:expenseYear, month:expenseMonth+1});
+    if(r.error){ box.innerHTML = '<div class="empty">❌ '+escHtml(r.error)+'</div>'; return; }
+    expenseCache = r;
+    renderExpenses();
+  } catch(e){ box.innerHTML = '<div class="empty">❌ 連線失敗</div>'; }
+}
+
+function renderExpenses() {
+  const r = expenseCache; if(!r) return;
+  const rocLabel = (expenseYear-1911)+'年'+(expenseMonth+1)+'月';
+  const fees = r.companyFees || {labor:0, health:0, effectiveFrom:''};
+  const misc = (r.expenses||[]).reduce((s,x)=>s+(parseInt(x.amount)||0),0);
+  const salary = r.salaryTotal||0;
+  const total = salary + fees.labor + fees.health + misc;
+  document.getElementById('expense-total-card').innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,#7a1f3d,#c0185f);border:none;margin-bottom:12px">
+      <div style="text-align:center">
+        <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-bottom:6px;font-weight:600">${rocLabel} 本月總支出</div>
+        <div style="font-size:38px;font-weight:900;color:white">${fmt$(total)}</div>
+      </div>
+      <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.25);padding-top:10px;color:white;font-size:13px">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>👤 司機薪資（${r.salaryCount||0}人實領）</span><b>${fmt$(salary)}</b></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>🛡️ 勞保費</span><b>${fmt$(fees.labor)}</b></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>🏥 健保費</span><b>${fmt$(fees.health)}</b></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>🧾 雜支</span><b>${fmt$(misc)}</b></div>
+      </div>
+    </div>`;
+  document.getElementById('exp-labor').value = fees.labor || '';
+  document.getElementById('exp-health').value = fees.health || '';
+  let note = '';
+  if(fees.effectiveFrom){
+    const p = fees.effectiveFrom.split('-');
+    note = '目前金額從 '+(parseInt(p[0])-1911)+'年'+parseInt(p[1])+'月 起生效。改了只影響「所選月份以後」，之前的月份不變。';
+  } else {
+    note = '尚未設定。輸入後按儲存，從所選月份起生效，之前的月份不變。';
+  }
+  document.getElementById('exp-fee-note').textContent = note;
+  const list = r.expenses||[];
+  document.getElementById('expense-list').innerHTML = list.length ? list.map(x=>`
+    <div class="deduction-item" style="border-color:var(--border);border-left-color:var(--pink)">
+      <div class="deduction-info">
+        <div class="name">${EXPENSE_ICONS[x.category]||'📦'} ${escHtml(x.description)}</div>
+        <div class="reason">${fmtDate(x.date)} ｜ ${escHtml(x.category)}${x.note?' ｜ '+escHtml(x.note):''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="deduction-amount" style="color:var(--pink)">${fmt$(x.amount)}</div>
+        <button class="btn-sm btn-sm-del" onclick="removeExpense('${escHtml(x.id)}')">🗑️</button>
+      </div>
+    </div>`).join('') : '<div class="empty" style="padding:20px">本月尚無雜支</div>';
+}
+
+async function saveCompanyFeesUI() {
+  const labor = parseInt(document.getElementById('exp-labor').value||0);
+  const health = parseInt(document.getElementById('exp-health').value||0);
+  if(isNaN(labor)||labor<0||isNaN(health)||health<0){ toast('⚠️ 金額不正確'); return; }
+  try {
+    const r = await apiCall({action:'saveCompanyFees', password:adminPw, year:expenseYear, month:expenseMonth+1, labor, health});
+    if(r.success){ toast('✅ 已儲存，從 '+(expenseYear-1911)+'年'+(expenseMonth+1)+'月起生效'); loadExpenses(); }
+    else toast('❌ '+(r.error||'儲存失敗'));
+  } catch(e){ toast('❌ 連線失敗'); }
+}
+
+async function addExpenseEntry() {
+  const date = document.getElementById('exp-date').value;
+  const category = document.getElementById('exp-cat').value;
+  const description = document.getElementById('exp-desc').value.trim();
+  const amount = parseInt(document.getElementById('exp-amount').value);
+  const note = document.getElementById('exp-note').value.trim();
+  if(!date){ toast('⚠️ 請選擇日期'); return; }
+  if(!description){ toast('⚠️ 請輸入說明'); return; }
+  if(isNaN(amount)||amount<=0){ toast('⚠️ 請輸入金額'); return; }
+  try {
+    const r = await apiCall({action:'addExpense', password:adminPw, date, category, description, amount, note});
+    if(r.success){
+      learnWord(category, description);
+      toast('✅ 已新增 '+description+' '+fmt$(amount));
+      document.getElementById('exp-desc').value='';
+      document.getElementById('exp-amount').value='';
+      document.getElementById('exp-note').value='';
+      const y = parseInt(date.substring(0,4)), m = parseInt(date.substring(5,7))-1;
+      if(y!==expenseYear || m!==expenseMonth){ expenseYear=y; expenseMonth=m; updateLabels(); }
+      loadExpenses();
+    } else toast('❌ '+(r.error||'新增失敗'));
+  } catch(e){ toast('❌ 連線失敗'); }
+}
+
+async function removeExpense(id) {
+  if(!confirm('確定刪除此筆支出？')) return;
+  try {
+    const r = await apiCall({action:'deleteExpense', password:adminPw, id});
+    if(r.success){ toast('🗑️ 已刪除'); loadExpenses(); }
+    else toast('❌ '+(r.error||'刪除失敗'));
+  } catch(e){ toast('❌ 連線失敗'); }
+}
+
 // 運費設定
 async function loadFreightSettings() {
   try {
@@ -819,6 +1001,7 @@ function buildTabs() {
   const tabs = document.getElementById('main-tabs');
   const allTabs = [
     {id:'revenue', label:'\u{1F4CA} \u672C\u6708\u6536\u76CA'},
+    {id:'expense', label:'\u{1F4B8} \u672C\u6708\u652F\u51FA'},
     {id:'salary', label:'\u{1F4B0} \u85AA\u8CC7\u6982\u6CC1'},
     {id:'calendar', label:'\u{1F4C5} \u51FA\u52E4\u6708\u66C6'},
     {id:'freight', label:'\u{1F69B} \u904B\u8CBB\u8A2D\u5B9A'},
@@ -842,6 +1025,7 @@ function showTab(t,el) {
   document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('on'));
   document.getElementById('page-'+t).classList.add('on'); el.classList.add('on');
   if(t==='revenue') loadRevenue();
+  if(t==='expense') loadExpenses();
   if(t==='salary') loadSalary();
   if(t==='calendar') renderCalendar();
   if(t==='freight') loadFreightSettings();
