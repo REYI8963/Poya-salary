@@ -147,6 +147,12 @@
   .ov-stat .stat-box { min-width:0; padding:12px 4px; }
   .ov-stat .stat-num { font-size:clamp(12px,4.2vw,17px); white-space:nowrap; }
   @media (max-width:520px) { .ov-grid { grid-template-columns:minmax(0,1fr); gap:20px; } }
+  .cl-chk { display:flex; align-items:center; gap:8px; padding:8px 0; font-size:14px; }
+  .cl-chk input { width:auto; margin:0; }
+  .cl-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--pink-l); font-size:14px; }
+  .cl-warn { background:#fde8e8; border:2px solid #e74c3c; color:#c0392b; border-radius:12px; padding:12px; font-size:13px; font-weight:700; margin:10px 0; line-height:1.6; }
+  .btn-red { background:linear-gradient(135deg,#e74c3c,#c0392b); color:white; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -179,6 +185,31 @@
   </header>
   <div class="tabs" id="main-tabs">
     <!-- 動態根據角色顯示 -->
+  </div>
+
+  <!-- 資料清理 -->
+  <div class="page" id="page-cleanup">
+    <div class="card">
+      <div class="card-title">🗑️ 資料清理</div>
+      <div class="fg"><label>起始月</label><input type="month" id="cl-start" onchange="clInvalidate()"></div>
+      <div class="fg"><label>結束月（含）</label><input type="month" id="cl-end" onchange="clInvalidate()"></div>
+      <button class="btn btn-outline" onclick="clQuick()">快速選：2 年前以前的全部</button>
+      <div style="margin-top:10px;font-size:13px;color:#888">要清理哪些資料？</div>
+      <label class="cl-chk"><input type="checkbox" class="cl-type" value="attendance" checked onchange="clInvalidate()"> 出勤紀錄</label>
+      <label class="cl-chk"><input type="checkbox" class="cl-type" value="deductions" checked onchange="clInvalidate()"> 扣款紀錄</label>
+      <label class="cl-chk"><input type="checkbox" class="cl-type" value="expenses" checked onchange="clInvalidate()"> 支出紀錄</label>
+      <label class="cl-chk"><input type="checkbox" class="cl-type" value="harddrop" checked onchange="clInvalidate()"> 困下費紀錄</label>
+      <button class="btn btn-primary" style="margin-top:10px" id="cl-preview-btn" onclick="clPreview()">🔍 預覽要刪多少筆</button>
+    </div>
+    <div class="card" id="cl-result" style="display:none">
+      <div class="card-title">預覽結果</div>
+      <div id="cl-counts"></div>
+      <div id="cl-warn" class="cl-warn" style="display:none"></div>
+      <label class="cl-chk" id="cl-recent-wrap" style="display:none"><input type="checkbox" id="cl-recent" onchange="clCheck()"> 我了解這包含近 2 年內的資料，仍要刪除</label>
+      <div class="fg" style="margin-top:10px"><label>請輸入「刪除」兩個字確認</label><input type="text" id="cl-confirm" placeholder="刪除" oninput="clCheck()"></div>
+      <button class="btn btn-red" id="cl-del-btn" disabled onclick="clDelete()">🗑️ 確認刪除</button>
+      <div style="font-size:12px;color:#888;margin-top:6px">刪除前會自動備份到試算表「刪除備份」分頁（只保留最近一次）。帳號、設定、運費、公司費用不會被刪。</div>
+    </div>
   </div>
 
   <!-- 帳號管理 (管理員+幹部) -->
@@ -1041,6 +1072,96 @@ async function removeExpense(id) {
   } catch(e){ toast('❌ 連線失敗'); }
 }
 
+// ===== 資料清理 =====
+var CL_NAMES = {attendance:'出勤紀錄', deductions:'扣款紀錄', expenses:'支出紀錄', harddrop:'困下費紀錄'};
+var clPrev = null;
+function initCleanup() {
+  clInvalidate();
+}
+function clMonthStr(offset) {
+  var d = new Date();
+  var y = d.getFullYear(), m = d.getMonth() - offset;
+  while (m < 0) { m += 12; y--; }
+  return y + '-' + String(m + 1).padStart(2, '0');
+}
+function clQuick() {
+  document.getElementById('cl-start').value = '2000-01';
+  document.getElementById('cl-end').value = clMonthStr(25);
+  clInvalidate();
+}
+function clTypes() {
+  var out = [], els = document.querySelectorAll('.cl-type');
+  for (var i = 0; i < els.length; i++) { if (els[i].checked) out.push(els[i].value); }
+  return out;
+}
+function clInvalidate() {
+  clPrev = null;
+  document.getElementById('cl-result').style.display = 'none';
+  document.getElementById('cl-confirm').value = '';
+  document.getElementById('cl-recent').checked = false;
+}
+function clCheck() {
+  var ok = !!clPrev && clPrev.total > 0 && document.getElementById('cl-confirm').value.trim() === '刪除';
+  if (ok && clPrev.needsWarning && !document.getElementById('cl-recent').checked) ok = false;
+  document.getElementById('cl-del-btn').disabled = !ok;
+}
+function clParams() {
+  var s = document.getElementById('cl-start').value, e = document.getElementById('cl-end').value, types = clTypes();
+  if (!s || !e) { toast('⚠️ 請選擇起始月與結束月'); return null; }
+  if (s > e) { toast('⚠️ 起始月不能晚於結束月'); return null; }
+  if (!types.length) { toast('⚠️ 請至少勾選一種資料'); return null; }
+  return {startMonth: s, endMonth: e, types: types};
+}
+async function clPreview() {
+  var p = clParams(); if (!p) return;
+  var btn = document.getElementById('cl-preview-btn'); btn.disabled = true;
+  try {
+    var r = await apiCall({action:'previewDeleteRange', password:adminPw, startMonth:p.startMonth, endMonth:p.endMonth, types:p.types});
+    if (!r.success) { toast('❌ ' + (r.error || '預覽失敗')); return; }
+    clPrev = r; clPrev.params = p;
+    var h = '';
+    for (var i = 0; i < p.types.length; i++) {
+      h += '<div class="cl-row"><span>' + CL_NAMES[p.types[i]] + '</span><b>' + (r.counts[p.types[i]] || 0) + ' 筆</b></div>';
+    }
+    h += '<div class="cl-row"><span>合計</span><b>' + r.total + ' 筆</b></div>';
+    if (r.total === 0) h += '<div style="padding:10px 0;color:#888;font-size:13px">這個區間沒有資料可刪</div>';
+    document.getElementById('cl-counts').innerHTML = h;
+    var w = document.getElementById('cl-warn'), rw = document.getElementById('cl-recent-wrap');
+    if (r.needsWarning && r.total > 0) {
+      w.style.display = 'block';
+      w.innerHTML = '⚠️ 注意：這個區間包含「近 2 年內」的資料（' + escHtml(r.cutoffMonth) + ' 起算）。刪掉後只能從備份救回最近一次的內容，請再三確認！';
+      rw.style.display = 'flex';
+    } else { w.style.display = 'none'; rw.style.display = 'none'; }
+    document.getElementById('cl-result').style.display = 'block';
+    document.getElementById('cl-confirm').value = '';
+    document.getElementById('cl-recent').checked = false;
+    clCheck();
+  } catch (e) { toast('❌ 網路錯誤'); }
+  finally { btn.disabled = false; }
+}
+async function clDelete() {
+  if (!clPrev || !clPrev.params) return;
+  var p = clPrev.params, btn = document.getElementById('cl-del-btn');
+  btn.disabled = true;
+  try {
+    var r = await apiCall({action:'deleteRange', password:adminPw, startMonth:p.startMonth, endMonth:p.endMonth, types:p.types,
+      confirmText:'刪除', confirmRecent: !!document.getElementById('cl-recent').checked});
+    if (!r.success) { toast('❌ ' + (r.error || '刪除失敗')); clCheck(); return; }
+    var h = '<div class="cl-row"><span>✅ 已刪除</span><b>' + r.total + ' 筆</b></div>';
+    for (var i = 0; i < p.types.length; i++) {
+      h += '<div class="cl-row"><span>' + CL_NAMES[p.types[i]] + '</span><b>' + (r.deleted[p.types[i]] || 0) + ' 筆</b></div>';
+    }
+    h += '<div style="padding:10px 0;font-size:13px;color:#888">' + (r.backedUp ? '備份在試算表「刪除備份」分頁（下次刪除會覆蓋）。' : '沒有資料被刪除，備份未變動。') + '</div>';
+    clPrev = null;
+    document.getElementById('cl-counts').innerHTML = h;
+    document.getElementById('cl-warn').style.display = 'none';
+    document.getElementById('cl-recent-wrap').style.display = 'none';
+    document.getElementById('cl-confirm').value = '';
+    document.getElementById('cl-del-btn').disabled = true;
+    toast('✅ 已刪除 ' + r.total + ' 筆');
+  } catch (e) { toast('❌ 網路錯誤'); clCheck(); }
+}
+
 // 運費設定
 async function loadFreightSettings() {
   try {
@@ -1134,6 +1255,7 @@ function buildTabs() {
     {id:'freight', label:'\u{1F69B} \u904B\u8CBB\u8A2D\u5B9A'},
     {id:'rates', label:'\u2699\uFE0F \u85AA\u8CC7\u8A2D\u5B9A'},
     {id:'accounts', label:'\u{1F464} \u5E33\u865F\u7BA1\u7406'},
+    {id:'cleanup', label:'\u{1F5D1}\uFE0F \u8CC7\u6599\u6E05\u7406'},
   ];
   tabs.innerHTML = allTabs.map((t,i)=>`<div class="tab ${i===0?'on':''}" onclick="showTab('${t.id}',this)">${t.label}</div>`).join('');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -1158,6 +1280,7 @@ function showTab(t,el) {
   if(t==='calendar') renderCalendar();
   if(t==='freight') loadFreightSettings();
   if(t==='rates') loadRates();
+  if(t==='cleanup') initCleanup();
 }
 
 function toast(msg) {
